@@ -1,0 +1,5 @@
+# Initial content imported on first start (seed_file, milestone M1).
+# Image paths are relative to the config/ directory.
+# site:
+#   title: { zh-CN: 我的社区, en: My Communities }
+#   description: { zh-CN: 加入我们的社区。, en: Join our communities. }

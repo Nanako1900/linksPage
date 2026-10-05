@@ -1,0 +1,13 @@
+name: Platform / provider request
+description: Ask for a new community platform
+labels: [provider]
+body:
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+    validations: { required: true }
+  - type: textarea
+    id: api
+    attributes:
+      label: Public data source (API, widget, badge) and example

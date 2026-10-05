@@ -1,0 +1,150 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/nanako1900/linkspage
+  BACKUP_IMAGE: ghcr.io/nanako1900/linkspage-backup
+
+jobs:
+  images:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    outputs:
+      digest: ${{ steps.app.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tags
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          # Before 1.0 only {{version}} and {{major}}.{{minor}}.
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - name: Backup tags
+        id: meta-backup
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.BACKUP_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - name: Build and push app
+        id: app
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build and push backup
+        id: backup
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: deploy/backup
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: ${{ steps.meta-backup.outputs.tags }}
+          labels: ${{ steps.meta-backup.outputs.labels }}
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.app.outputs.digest }}
+          push-to-registry: true
+
+  # Builds release assets with a read-only token: dependency code (pnpm
+  # install, Vite plugins) never runs next to a write-scoped token.
+  assets:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - name: Build web-dist
+        working-directory: web
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm build
+          mkdir -p "$RUNNER_TEMP/release"
+          tar -C dist -czf "$RUNNER_TEMP/release/web-dist.tar.gz" .
+      - name: Deploy bundle
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          dir="$RUNNER_TEMP/linkspage-deploy-$TAG"
+          mkdir -p "$dir/config"
+          cp compose.yaml deploy/compose.direct.yaml .env.example deploy/init.sh README.md "$dir/"
+          cp config/config.example.yaml config/seed.example.yaml "$dir/config/"
+          # Pin the bundle to this release (0.x tag series before 1.0).
+          minor=$(printf '%s' "${TAG#v}" | cut -d. -f1-2)
+          sed -i "s/^LINKSPAGE_TAG=.*/LINKSPAGE_TAG=$minor/" "$dir/.env.example"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/release/linkspage-deploy-$TAG.tar.gz" "linkspage-deploy-$TAG"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/release/
+          if-no-files-found: error
+          retention-days: 1
+
+  # Publishes the assets: write token, but no checkout and no third-party code.
+  publish:
+    needs: [assets, images]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-assets
+          path: release
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          files: |
+            release/web-dist.tar.gz
+            release/linkspage-deploy-${{ github.ref_name }}.tar.gz
+
+  anonymous-pull:
+    needs: images
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Pull without credentials
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          docker logout ghcr.io || true
+          docker pull "$IMAGE:${TAG#v}"

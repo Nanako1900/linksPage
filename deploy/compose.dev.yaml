@@ -1,0 +1,18 @@
+# Development database for `make dev` (the app runs on the host).
+name: linkspage-dev
+services:
+  db:
+    image: ${LINKSPAGE_PG_IMAGE:-postgres:18-alpine}
+    environment:
+      POSTGRES_USER: linkspage
+      POSTGRES_DB: linkspage
+      POSTGRES_PASSWORD: linkspage-dev
+    ports: ["127.0.0.1:55432:5432"]
+    volumes: ["dev-db:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linkspage -d linkspage"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  dev-db: {}
