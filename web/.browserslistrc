@@ -1,0 +1,12 @@
+# Public page baseline (docs/tech-selection.md 8.1). Checked in CI by
+# stylelint-no-unsupported-browser-features (`pnpm lint:css`).
+#
+# In-app browsers: iOS WeChat/QQ use the system WKWebView (= iOS Safari).
+# Android WeChat uses XWeb, a Chromium build whose version is reported in
+# the UA (e.g. "Chrome/130 … XWEB/1300059"); its oldest version in the wild
+# is UNVERIFIED (doc 8.6), so the Chromium floor here is the guarantee.
+# Older WebViews (Chrome < 99) drop @layer and fall back to the
+# server-rendered markup plus the unlayered critical CSS.
+chrome >= 99
+safari >= 15.4
+ios_saf >= 15.4

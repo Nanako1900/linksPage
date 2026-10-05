@@ -1,7 +1,9 @@
 import { createRoot } from "react-dom/client";
-import { type Bootstrap, loadBootstrap } from "../shared/bootstrap";
+import { loadPage } from "../shared/bootstrap";
 import { createT } from "../shared/i18n/t";
-import { LANG_STORAGE_KEY, pickLocalized, resolveLocale } from "../shared/localized";
+import { LANG_STORAGE_KEY, resolveLocale } from "../shared/localized";
+import type { PublicPage } from "../shared/types/public";
+import { classifyNavigator } from "../shared/ua";
 import { App } from "./App";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { ErrorNotice } from "./ErrorNotice";
@@ -25,12 +27,12 @@ function safeStorageSet(key: string, value: string): void {
   }
 }
 
-function enabledLocales(data: Bootstrap): readonly string[] {
-  return data.site.locales ?? [data.site.defaultLocale];
+function enabledLocales(data: PublicPage): readonly string[] {
+  return data.site.locales.length > 0 ? data.site.locales : [data.site.defaultLocale];
 }
 
 /** Resolve the UI locale: ?lang= → stored choice → browser languages → default. */
-export function localeFor(data: Bootstrap, loc: Location, nav: Pick<Navigator, "languages">): string {
+export function localeFor(data: PublicPage, loc: Pick<Location, "search">, nav: Pick<Navigator, "languages">): string {
   return resolveLocale({
     enabled: enabledLocales(data),
     defaultLocale: data.site.defaultLocale,
@@ -41,7 +43,7 @@ export function localeFor(data: Bootstrap, loc: Location, nav: Pick<Navigator, "
 }
 
 /** Persist an explicit ?lang= choice so it survives navigation. */
-export function rememberLocaleChoice(data: Bootstrap, loc: Location): void {
+export function rememberLocaleChoice(data: PublicPage, loc: Pick<Location, "search">): void {
   const query = new URLSearchParams(loc.search).get("lang");
   if (query && enabledLocales(data).includes(query)) safeStorageSet(LANG_STORAGE_KEY, query);
 }
@@ -56,9 +58,9 @@ function showLoadError(root: HTMLElement): void {
 
 /** Mount the public app, replacing the server-rendered fallback markup. */
 export async function start(root: HTMLElement): Promise<void> {
-  let data: Bootstrap;
+  let data: PublicPage;
   try {
-    data = await loadBootstrap(document);
+    data = await loadPage(document);
   } catch (err) {
     reportFailure(err);
     showLoadError(root);
@@ -67,13 +69,10 @@ export async function start(root: HTMLElement): Promise<void> {
   const locale = localeFor(data, window.location, navigator);
   rememberLocaleChoice(data, window.location);
   document.documentElement.lang = locale;
-  // The server renders <title> in the default locale; keep it in step with the body.
-  const title = pickLocalized(data.site.title, locale, data.site.defaultLocale);
-  if (title) document.title = title;
-  const t = createT(locale, data.site.defaultLocale);
+  const t = createT(locale, data.site.defaultLocale, data.site.copy);
   createRoot(root).render(
     <ErrorBoundary fallback={<ErrorNotice message={t("loadError")} />}>
-      <App data={data} route={matchRoute(window.location.pathname)} locale={locale} t={t} />
+      <App page={data} route={matchRoute(window.location.pathname)} locale={locale} ua={classifyNavigator(navigator)} />
     </ErrorBoundary>,
   );
 }

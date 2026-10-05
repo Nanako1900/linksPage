@@ -6,4 +6,4 @@
  * OpenAPI spec version: dev
  */
 
-export type SettingsDescription = {[key: string]: string};
+export type BlockViewMarkdown = {[key: string]: string};

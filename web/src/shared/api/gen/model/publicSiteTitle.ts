@@ -6,4 +6,4 @@
  * OpenAPI spec version: dev
  */
 
-export type SettingsTitle = {[key: string]: string};
+export type PublicSiteTitle = {[key: string]: string};

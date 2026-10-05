@@ -1,0 +1,7 @@
+# Cloudflare Workers Static Assets (deploy/cloudflare-worker, topology C):
+# files in web/dist that must not be published on the visitor-facing host.
+# The Vite manifest is only read by the Go origin, and /admin is always
+# served by the origin (the admin chunks under assets/ stay published).
+.vite/
+admin/
+.assetsignore

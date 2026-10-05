@@ -1,5 +1,6 @@
 @import "tailwindcss" source(none);
 @import "./tokens.css";
+@import "./public-components.css";
 
 @source "../public";
 @source "../shared";
@@ -18,6 +19,8 @@
   --color-border: var(--lp-border);
   --color-accent: var(--lp-accent);
   --color-accent-fg: var(--lp-accent-fg);
+  --color-accent-soft: var(--lp-accent-soft);
+  --color-online: var(--lp-online);
   --radius-card: var(--lp-radius);
   --font-sans: var(--lp-font-sans);
   --font-display: var(--lp-font-display);
@@ -32,5 +35,7 @@
     background-color: var(--color-bg);
     color: var(--color-fg);
     font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 }

@@ -7,7 +7,10 @@
  */
 import type {
   BootstrapOutputBody,
-  Problem
+  GetPublicRenderParams,
+  LiveOutputBody,
+  Problem,
+  RenderOutputBody
 } from './model';
 
 
@@ -44,8 +47,8 @@ export const getGetPublicBootstrapUrl = () => {
 }
 
 /**
- * Site settings and the default page. The same document is embedded in HTML as #lp-data.
- * @summary Public bootstrap data
+ * The public page DTO. The same document is embedded in HTML as #lp-data.
+ * @summary Public page data
  */
 export const getPublicBootstrap = async ( options?: RequestInit): Promise<getPublicBootstrapResponse> => {
 
@@ -63,6 +66,155 @@ export const getPublicBootstrap = async ( options?: RequestInit): Promise<getPub
 
   const data: getPublicBootstrapResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as getPublicBootstrapResponse
+}
+
+
+
+export type getPublicLiveResponse200 = {
+  data: LiveOutputBody
+  status: 200
+}
+
+export type getPublicLiveResponse304 = {
+  data: void
+  status: 304
+}
+
+export type getPublicLiveResponse422 = {
+  data: Problem
+  status: 422
+}
+
+export type getPublicLiveResponse429 = {
+  data: Problem
+  status: 429
+}
+
+export type getPublicLiveResponse500 = {
+  data: Problem
+  status: 500
+}
+
+export type getPublicLiveResponse503 = {
+  data: Problem
+  status: 503
+}
+
+export type getPublicLiveResponseSuccess = (getPublicLiveResponse200) & {
+  headers: Headers;
+};
+export type getPublicLiveResponseError = (getPublicLiveResponse304 | getPublicLiveResponse422 | getPublicLiveResponse429 | getPublicLiveResponse500 | getPublicLiveResponse503) & {
+  headers: Headers;
+};
+
+export type getPublicLiveResponse = (getPublicLiveResponseSuccess | getPublicLiveResponseError)
+
+export const getGetPublicLiveUrl = () => {
+
+
+
+
+  return `/api/v1/public/live`
+}
+
+/**
+ * Frequently changing card data, polled every 60 s while the page is visible. Send If-None-Match; 304 when unchanged. A different revision means the page must be reloaded.
+ * @summary Live community data
+ */
+export const getPublicLive = async ( options?: RequestInit): Promise<getPublicLiveResponse> => {
+
+  const res = await fetch(getGetPublicLiveUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getPublicLiveResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getPublicLiveResponse
+}
+
+
+
+export type getPublicRenderResponse200 = {
+  data: RenderOutputBody
+  status: 200
+}
+
+export type getPublicRenderResponse403 = {
+  data: Problem
+  status: 403
+}
+
+export type getPublicRenderResponse422 = {
+  data: Problem
+  status: 422
+}
+
+export type getPublicRenderResponse429 = {
+  data: Problem
+  status: 429
+}
+
+export type getPublicRenderResponse500 = {
+  data: Problem
+  status: 500
+}
+
+export type getPublicRenderResponse503 = {
+  data: Problem
+  status: 503
+}
+
+export type getPublicRenderResponseSuccess = (getPublicRenderResponse200) & {
+  headers: Headers;
+};
+export type getPublicRenderResponseError = (getPublicRenderResponse403 | getPublicRenderResponse422 | getPublicRenderResponse429 | getPublicRenderResponse500 | getPublicRenderResponse503) & {
+  headers: Headers;
+};
+
+export type getPublicRenderResponse = (getPublicRenderResponseSuccess | getPublicRenderResponseError)
+
+export const getGetPublicRenderUrl = (params: GetPublicRenderParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/public/render?${stringifiedParams}` : `/api/v1/public/render`
+}
+
+/**
+ * Head fragment, fallback markup, data and CSP of a public page (topology C).
+ * @summary Server rendering for the edge Worker
+ */
+export const getPublicRender = async (params: GetPublicRenderParams, options?: RequestInit): Promise<getPublicRenderResponse> => {
+
+  const res = await fetch(getGetPublicRenderUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getPublicRenderResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getPublicRenderResponse
 }
 
 

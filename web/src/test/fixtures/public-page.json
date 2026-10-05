@@ -1,0 +1,415 @@
+{
+  "version": 4,
+  "revision": "r-5f2c9a1e",
+  "page": { "id": 1, "slug": "default" },
+  "site": {
+    "baseUrl": "https://links.example.com",
+    "defaultLocale": "zh-CN",
+    "locales": ["zh-CN", "en"],
+    "title": { "zh-CN": "猎人小屋", "en": "Hunter's Lodge" },
+    "description": {
+      "zh-CN": "我们的 Discord、KOOK、QQ 和微信社区。",
+      "en": "Our Discord, KOOK, QQ and WeChat communities."
+    },
+    "displayName": { "zh-CN": "猎人小屋", "en": "Hunter's Lodge" },
+    "bio": { "zh-CN": "欢迎来玩，**周五晚上**一起开黑。", "en": "Come hang out — game night is **Friday**." },
+    "avatar": { "url": "/media/u/0123456789abcdef0123456789abcdef.webp", "width": 256, "height": 256 },
+    "appearance": "auto",
+    "theme": {
+      "preset": "signal-paper",
+      "light": {
+        "bg": "#f9f7f1",
+        "fg": "#1a1c22",
+        "muted": "#5f6270",
+        "card": "#ffffff",
+        "border": "#e4e1d8",
+        "accent": "#5b4ad8",
+        "accentFg": "#ffffff"
+      },
+      "dark": {
+        "bg": "#111216",
+        "fg": "#ecebe6",
+        "muted": "#9a9cab",
+        "card": "#1a1b21",
+        "border": "#2c2e36",
+        "accent": "#8b7ff0",
+        "accentFg": "#111216"
+      },
+      "radius": "0.75rem",
+      "fontSans": "system",
+      "fontDisplay": "instrument-serif"
+    },
+    "footer": { "zh-CN": "联系：[邮件](mailto:hi@example.com)", "en": "Contact: [email](mailto:hi@example.com)" },
+    "showPoweredBy": true,
+    "notFound": { "zh-CN": "这个地址不存在。", "en": "Nothing here." },
+    "copy": { "zh-CN": { "openInBrowser": "点右上角 ··· 选择「在浏览器打开」" } }
+  },
+  "blocks": [
+    {
+      "id": "01920000-0000-7000-8000-000000000101",
+      "kind": "heading",
+      "text": { "zh-CN": "社区", "en": "Communities" },
+      "count": 8
+    },
+    {
+      "id": "01920000-0000-7000-8000-000000000102",
+      "kind": "community",
+      "communityId": "01920000-0000-7000-8000-000000000001"
+    },
+    {
+      "id": "01920000-0000-7000-8000-000000000103",
+      "kind": "community",
+      "communityId": "01920000-0000-7000-8000-000000000002"
+    },
+    {
+      "id": "01920000-0000-7000-8000-000000000104",
+      "kind": "community",
+      "communityId": "01920000-0000-7000-8000-000000000003"
+    },
+    {
+      "id": "01920000-0000-7000-8000-000000000105",
+      "kind": "community",
+      "communityId": "01920000-0000-7000-8000-000000000004"
+    },
+    {
+      "id": "01920000-0000-7000-8000-000000000106",
+      "kind": "community",
+      "communityId": "01920000-0000-7000-8000-000000000005"
+    },
+    {
+      "id": "01920000-0000-7000-8000-000000000107",
+      "kind": "community",
+      "communityId": "01920000-0000-7000-8000-000000000006"
+    },
+    {
+      "id": "01920000-0000-7000-8000-000000000108",
+      "kind": "community",
+      "communityId": "01920000-0000-7000-8000-000000000007"
+    },
+    {
+      "id": "01920000-0000-7000-8000-000000000109",
+      "kind": "community",
+      "communityId": "01920000-0000-7000-8000-000000000008"
+    },
+    { "id": "01920000-0000-7000-8000-000000000110", "kind": "heading", "text": { "zh-CN": "链接", "en": "Links" } },
+    { "id": "01920000-0000-7000-8000-000000000111", "kind": "link", "linkId": "01920000-0000-7000-8000-000000000201" },
+    {
+      "id": "01920000-0000-7000-8000-000000000112",
+      "kind": "text",
+      "markdown": {
+        "zh-CN": "活动日历见 [博客](https://blog.example.com)。",
+        "en": "See the [blog](https://blog.example.com) for events."
+      }
+    },
+    {
+      "id": "01920000-0000-7000-8000-000000000113",
+      "kind": "social_row",
+      "linkIds": ["01920000-0000-7000-8000-000000000202", "01920000-0000-7000-8000-000000000203"]
+    }
+  ],
+  "communities": {
+    "01920000-0000-7000-8000-000000000001": {
+      "id": "01920000-0000-7000-8000-000000000001",
+      "slug": "discord",
+      "provider": "discord",
+      "platform": "discord",
+      "card": "discord",
+      "name": { "zh-CN": "Discord 主服务器", "en": "Main Discord" },
+      "description": { "zh-CN": "公告、组队和语音。", "en": "News, squads and voice." },
+      "icon": { "url": "/media/p/Q2xvdWRmbGFyZUljb24xMg.png", "width": 128, "height": 128 },
+      "sharePath": "/c/discord",
+      "inviteUrl": "https://discord.gg/KwdRuAkT",
+      "memberDisplay": "avatars_names",
+      "embed": { "kind": "discord", "src": "https://discord.com/widget?id=1114391825336250432" },
+      "qq": null,
+      "qr": null,
+      "contact": null,
+      "unavailableText": {},
+      "live": {
+        "state": "live",
+        "online": 13,
+        "members": 125,
+        "onlineSource": "invite",
+        "channels": [
+          { "id": "1114391825890000001", "name": "General" },
+          { "id": "1114391825890000002", "name": "开黑 1 号" }
+        ],
+        "users": [
+          { "name": "user1", "avatarUrl": "/media/p/QXZhdGFyMDAwMDAwMDAwMQ.png", "status": "online" },
+          { "name": "猎人二号", "avatarUrl": "/media/p/QXZhdGFyMDAwMDAwMDAwMg.png", "status": "idle" },
+          { "name": "user3", "avatarUrl": null, "status": "dnd" }
+        ],
+        "updatedAt": "2026-10-05T13:45:00Z",
+        "joinUrl": "/go/discord"
+      }
+    },
+    "01920000-0000-7000-8000-000000000002": {
+      "id": "01920000-0000-7000-8000-000000000002",
+      "slug": "discord-eu",
+      "provider": "discord",
+      "platform": "discord",
+      "card": "discord",
+      "name": { "zh-CN": "欧服 Discord", "en": "EU Discord" },
+      "description": {},
+      "icon": null,
+      "sharePath": "/c/discord-eu",
+      "inviteUrl": "https://discord.gg/euLodge",
+      "memberDisplay": "avatars",
+      "embed": null,
+      "qq": null,
+      "qr": null,
+      "contact": null,
+      "unavailableText": {},
+      "live": {
+        "state": "stale",
+        "online": 4,
+        "members": 52,
+        "onlineSource": "widget",
+        "channels": [],
+        "users": [{ "name": null, "avatarUrl": "/media/p/QXZhdGFyMDAwMDAwMDAwMw.png", "status": "online" }],
+        "updatedAt": "2026-10-05T12:10:00Z",
+        "joinUrl": "/go/discord-eu"
+      }
+    },
+    "01920000-0000-7000-8000-000000000003": {
+      "id": "01920000-0000-7000-8000-000000000003",
+      "slug": "discord-old",
+      "provider": "discord",
+      "platform": "discord",
+      "card": "discord",
+      "name": { "zh-CN": "旧服务器", "en": "Old server" },
+      "description": {},
+      "icon": null,
+      "sharePath": "/c/discord-old",
+      "inviteUrl": null,
+      "memberDisplay": "hidden",
+      "embed": null,
+      "qq": null,
+      "qr": null,
+      "contact": null,
+      "unavailableText": {},
+      "live": {
+        "state": "degraded",
+        "online": 2,
+        "members": 40,
+        "onlineSource": "widget",
+        "channels": [],
+        "users": [],
+        "updatedAt": "2026-10-05T13:40:00Z",
+        "joinUrl": null
+      }
+    },
+    "01920000-0000-7000-8000-000000000004": {
+      "id": "01920000-0000-7000-8000-000000000004",
+      "slug": "kook",
+      "provider": "kook",
+      "platform": "kook",
+      "card": "kook",
+      "name": { "zh-CN": "KOOK 语音", "en": "KOOK voice" },
+      "description": {},
+      "icon": { "url": "/media/u/fedcba9876543210fedcba9876543210.webp", "width": 128, "height": 128 },
+      "sharePath": "/c/kook",
+      "inviteUrl": "https://kook.top/AbCdEf",
+      "memberDisplay": "avatars_names",
+      "embed": null,
+      "qq": null,
+      "qr": null,
+      "contact": null,
+      "unavailableText": {},
+      "live": {
+        "state": "live",
+        "online": 10350,
+        "members": 107345,
+        "onlineSource": "badge",
+        "channels": [],
+        "users": [],
+        "updatedAt": "2026-10-05T13:46:00Z",
+        "joinUrl": "/go/kook"
+      }
+    },
+    "01920000-0000-7000-8000-000000000005": {
+      "id": "01920000-0000-7000-8000-000000000005",
+      "slug": "qq-fans",
+      "provider": "static",
+      "platform": "qq-group",
+      "card": "qq-group",
+      "name": { "zh-CN": "QQ 粉丝群", "en": "QQ fan group" },
+      "description": {},
+      "icon": null,
+      "sharePath": "/c/qq-fans",
+      "inviteUrl": "https://qm.qq.com/q/AbCdEf",
+      "memberDisplay": "avatars_names",
+      "embed": null,
+      "qq": { "groupNumber": "123456789" },
+      "qr": { "url": "/media/q/01920000-0000-7000-8000-000000000301", "width": 480, "height": 480, "note": {} },
+      "contact": null,
+      "unavailableText": {},
+      "live": {
+        "state": "static",
+        "online": null,
+        "members": null,
+        "onlineSource": null,
+        "channels": [],
+        "users": [],
+        "updatedAt": null,
+        "joinUrl": "/go/qq-fans"
+      }
+    },
+    "01920000-0000-7000-8000-000000000006": {
+      "id": "01920000-0000-7000-8000-000000000006",
+      "slug": "qq-chat",
+      "provider": "static",
+      "platform": "qq-group",
+      "card": "qq-group",
+      "name": { "zh-CN": "QQ 闲聊群", "en": "QQ chat group" },
+      "description": {},
+      "icon": null,
+      "sharePath": "/c/qq-chat",
+      "inviteUrl": null,
+      "memberDisplay": "avatars_names",
+      "embed": null,
+      "qq": { "groupNumber": "87654321" },
+      "qr": null,
+      "contact": null,
+      "unavailableText": {},
+      "live": {
+        "state": "static",
+        "online": null,
+        "members": null,
+        "onlineSource": null,
+        "channels": [],
+        "users": [],
+        "updatedAt": null,
+        "joinUrl": null
+      }
+    },
+    "01920000-0000-7000-8000-000000000007": {
+      "id": "01920000-0000-7000-8000-000000000007",
+      "slug": "wechat",
+      "provider": "static",
+      "platform": "wechat-group",
+      "card": "wechat-group",
+      "name": { "zh-CN": "微信群", "en": "WeChat group" },
+      "description": {},
+      "icon": null,
+      "sharePath": "/c/wechat",
+      "inviteUrl": null,
+      "memberDisplay": "avatars_names",
+      "embed": null,
+      "qq": null,
+      "qr": {
+        "url": "/media/q/01920000-0000-7000-8000-000000000302",
+        "width": 430,
+        "height": 430,
+        "note": { "zh-CN": "更新于 10-05，7 天内有效", "en": "Updated 10-05, valid for 7 days" }
+      },
+      "contact": {
+        "label": { "zh-CN": "群满或二维码失效时，加我拉你进群", "en": "Group full or QR expired? Add me" },
+        "value": "lodge_admin"
+      },
+      "unavailableText": {},
+      "live": {
+        "state": "qr-only",
+        "online": null,
+        "members": null,
+        "onlineSource": null,
+        "channels": [],
+        "users": [],
+        "updatedAt": null,
+        "joinUrl": null
+      }
+    },
+    "01920000-0000-7000-8000-000000000008": {
+      "id": "01920000-0000-7000-8000-000000000008",
+      "slug": "kook-old",
+      "provider": "kook",
+      "platform": "kook",
+      "card": "kook",
+      "name": { "zh-CN": "旧 KOOK 服务器", "en": "Old KOOK server" },
+      "description": {},
+      "icon": null,
+      "sharePath": "/c/kook-old",
+      "inviteUrl": null,
+      "memberDisplay": "avatars_names",
+      "embed": null,
+      "qq": null,
+      "qr": null,
+      "contact": null,
+      "unavailableText": { "zh-CN": "服务器已关闭，请加入新的 KOOK。", "en": "This server closed; join the new KOOK." },
+      "live": {
+        "state": "unavailable",
+        "online": null,
+        "members": null,
+        "onlineSource": null,
+        "channels": [],
+        "users": [],
+        "updatedAt": "2026-10-05T13:30:00Z",
+        "joinUrl": null
+      }
+    }
+  },
+  "links": {
+    "01920000-0000-7000-8000-000000000201": {
+      "id": "01920000-0000-7000-8000-000000000201",
+      "slug": "blog",
+      "kind": "link",
+      "label": { "zh-CN": "博客", "en": "Blog" },
+      "url": "https://blog.example.com",
+      "href": "/go/blog",
+      "icon": { "kind": "builtin", "name": "link", "url": null },
+      "relMe": false
+    },
+    "01920000-0000-7000-8000-000000000202": {
+      "id": "01920000-0000-7000-8000-000000000202",
+      "slug": "github",
+      "kind": "social",
+      "label": { "en": "GitHub" },
+      "url": "https://github.com/example",
+      "href": "/go/github",
+      "icon": { "kind": "simple", "name": "github", "url": null },
+      "relMe": false
+    },
+    "01920000-0000-7000-8000-000000000203": {
+      "id": "01920000-0000-7000-8000-000000000203",
+      "slug": "mastodon",
+      "kind": "social",
+      "label": { "en": "Mastodon" },
+      "url": "https://mastodon.social/@example",
+      "href": "https://mastodon.social/@example",
+      "icon": {
+        "kind": "media",
+        "name": "00112233445566778899aabbccddeeff.png",
+        "url": "/media/u/00112233445566778899aabbccddeeff.png"
+      },
+      "relMe": true
+    }
+  },
+  "platforms": {
+    "discord": {
+      "id": "discord",
+      "name": { "en": "Discord", "zh-CN": "Discord" },
+      "icon": { "kind": "simple", "name": "discord", "url": null },
+      "needsExternalBrowser": true
+    },
+    "kook": {
+      "id": "kook",
+      "name": { "en": "KOOK", "zh-CN": "KOOK" },
+      "icon": { "kind": "builtin", "name": "kook", "url": null },
+      "needsExternalBrowser": false
+    },
+    "qq-group": {
+      "id": "qq-group",
+      "name": { "en": "QQ Group", "zh-CN": "QQ 群" },
+      "icon": { "kind": "simple", "name": "qq", "url": null },
+      "needsExternalBrowser": false
+    },
+    "wechat-group": {
+      "id": "wechat-group",
+      "name": { "en": "WeChat Group", "zh-CN": "微信群" },
+      "icon": { "kind": "simple", "name": "wechat", "url": null },
+      "needsExternalBrowser": false
+    }
+  },
+  "generatedAt": "2026-10-05T13:46:30Z",
+  "nextBoundary": "2026-10-10T16:00:00Z"
+}

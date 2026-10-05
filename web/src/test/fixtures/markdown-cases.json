@@ -1,0 +1,215 @@
+{
+  "_comment": "Shared Markdown corpus (docs/m1/contract.md 5.4). The server renderer (internal/content, used for the no-JS fallback) and the client parser (src/shared/markdown) must both produce `html` for `markdown`, so the page does not change after hydration. `html` is normalized: newlines removed, only href/start attributes kept, quotes unescaped.",
+  "cases": [
+    {
+      "name": "paragraph",
+      "markdown": "hello",
+      "html": "<p>hello</p>"
+    },
+    {
+      "name": "two paragraphs",
+      "markdown": "a\n\nb",
+      "html": "<p>a</p><p>b</p>"
+    },
+    {
+      "name": "inline styles",
+      "markdown": "*e* **s** ~~d~~ `c`",
+      "html": "<p><em>e</em> <strong>s</strong> <del>d</del> <code>c</code></p>"
+    },
+    {
+      "name": "single tilde strikethrough",
+      "markdown": "~a~",
+      "html": "<p><del>a</del></p>"
+    },
+    {
+      "name": "trailing-space break",
+      "markdown": "a  \nb",
+      "html": "<p>a<br>b</p>"
+    },
+    {
+      "name": "newline is a break",
+      "markdown": "a\nb",
+      "html": "<p>a<br>b</p>"
+    },
+    {
+      "name": "backslash break",
+      "markdown": "a\\\nb",
+      "html": "<p>a<br>b</p>"
+    },
+    {
+      "name": "strong across lines",
+      "markdown": "**a\nb**",
+      "html": "<p><strong>a<br>b</strong></p>"
+    },
+    {
+      "name": "nested emphasis",
+      "markdown": "*a **b** c*",
+      "html": "<p><em>a <strong>b</strong> c</em></p>"
+    },
+    {
+      "name": "intraword underscore",
+      "markdown": "snake_case_name",
+      "html": "<p>snake_case_name</p>"
+    },
+    {
+      "name": "escaped stars",
+      "markdown": "\\*not\\*",
+      "html": "<p>*not*</p>"
+    },
+    {
+      "name": "code span keeps stars",
+      "markdown": "use `x*y*`",
+      "html": "<p>use <code>x*y*</code></p>"
+    },
+    {
+      "name": "special characters",
+      "markdown": "a \"q\" 'r' & <s>",
+      "html": "<p>a \"q\" 'r' &amp; &lt;s&gt;</p>"
+    },
+    {
+      "name": "https link",
+      "markdown": "[x](https://Example.com/a)",
+      "html": "<p><a href=\"https://Example.com/a\">x</a></p>"
+    },
+    {
+      "name": "http link",
+      "markdown": "[x](http://a.example)",
+      "html": "<p><a href=\"http://a.example\">x</a></p>"
+    },
+    {
+      "name": "mailto link",
+      "markdown": "[m](mailto:hi@example.com)",
+      "html": "<p><a href=\"mailto:hi@example.com\">m</a></p>"
+    },
+    {
+      "name": "javascript link",
+      "markdown": "[x](javascript:alert(1))",
+      "html": "<p>x</p>"
+    },
+    {
+      "name": "relative link",
+      "markdown": "[x](/admin)",
+      "html": "<p>x</p>"
+    },
+    {
+      "name": "balanced parentheses",
+      "markdown": "[x](https://en.wikipedia.org/wiki/Foo_(bar))",
+      "html": "<p><a href=\"https://en.wikipedia.org/wiki/Foo_(bar)\">x</a></p>"
+    },
+    {
+      "name": "nested parentheses",
+      "markdown": "[x](https://a.example/a_(b)_c(d))",
+      "html": "<p><a href=\"https://a.example/a_(b)_c(d)\">x</a></p>"
+    },
+    {
+      "name": "unbalanced parenthesis",
+      "markdown": "[x](https://a.example/(a)",
+      "html": "<p>[x](https://a.example/(a)</p>"
+    },
+    {
+      "name": "double-quoted title",
+      "markdown": "[x](https://a.example \"title\")",
+      "html": "<p><a href=\"https://a.example\">x</a></p>"
+    },
+    {
+      "name": "single-quoted title",
+      "markdown": "[x](https://a.example 'title')",
+      "html": "<p><a href=\"https://a.example\">x</a></p>"
+    },
+    {
+      "name": "parenthesized title",
+      "markdown": "[x](https://a.example (title))",
+      "html": "<p><a href=\"https://a.example\">x</a></p>"
+    },
+    {
+      "name": "angle destination",
+      "markdown": "[x](<https://a.example/p>)",
+      "html": "<p><a href=\"https://a.example/p\">x</a></p>"
+    },
+    {
+      "name": "nested brackets in label",
+      "markdown": "[a [b] c](https://a.example)",
+      "html": "<p><a href=\"https://a.example\">a [b] c</a></p>"
+    },
+    {
+      "name": "autolink not parsed",
+      "markdown": "<https://x.example>",
+      "html": "<p>&lt;https://x.example&gt;</p>"
+    },
+    {
+      "name": "bare url not linked",
+      "markdown": "https://bare.example",
+      "html": "<p>https://bare.example</p>"
+    },
+    {
+      "name": "reference link not parsed",
+      "markdown": "[ref]: https://a.example\n\n[ref]",
+      "html": "<p>[ref]: https://a.example</p><p>[ref]</p>"
+    },
+    {
+      "name": "image as alt text",
+      "markdown": "![alt text](https://x.example/a.png)",
+      "html": "<p>alt text</p>"
+    },
+    {
+      "name": "raw html is text",
+      "markdown": "<b>x</b>",
+      "html": "<p>&lt;b&gt;x&lt;/b&gt;</p>"
+    },
+    {
+      "name": "heading not parsed",
+      "markdown": "# Title",
+      "html": "<p># Title</p>"
+    },
+    {
+      "name": "thematic break not parsed",
+      "markdown": "# Title\n---",
+      "html": "<p># Title<br>---</p>"
+    },
+    {
+      "name": "unordered list",
+      "markdown": "- a\n- b",
+      "html": "<ul><li>a</li><li>b</li></ul>"
+    },
+    {
+      "name": "ordered list with start",
+      "markdown": "3. a\n4. b",
+      "html": "<ol start=\"3\"><li>a</li><li>b</li></ol>"
+    },
+    {
+      "name": "ordered list with parenthesis",
+      "markdown": "1) a\n2) b",
+      "html": "<ol><li>a</li><li>b</li></ol>"
+    },
+    {
+      "name": "loose list",
+      "markdown": "- a\n- b\n\n- c",
+      "html": "<ul><li><p>a</p></li><li><p>b</p></li><li><p>c</p></li></ul>"
+    },
+    {
+      "name": "list then paragraph",
+      "markdown": "- a\n\nb",
+      "html": "<ul><li>a</li></ul><p>b</p>"
+    },
+    {
+      "name": "list item continuation",
+      "markdown": "- a\n  continued\n- b",
+      "html": "<ul><li>a<br>continued</li><li>b</li></ul>"
+    },
+    {
+      "name": "blockquote",
+      "markdown": "> q",
+      "html": "<blockquote><p>q</p></blockquote>"
+    },
+    {
+      "name": "nested blockquote",
+      "markdown": "> a\n> > b",
+      "html": "<blockquote><p>a</p><blockquote><p>b</p></blockquote></blockquote>"
+    },
+    {
+      "name": "lazy blockquote continuation",
+      "markdown": "> a\nlazy",
+      "html": "<blockquote><p>a<br>lazy</p></blockquote>"
+    }
+  ]
+}
