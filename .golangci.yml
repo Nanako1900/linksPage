@@ -1,0 +1,56 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - gosec
+    - errorlint
+    - bodyclose
+    - noctx
+    - misspell
+    - unconvert
+    - usestdlibvars
+    - copyloopvar
+    - nolintlint
+  settings:
+    gosec:
+      excludes:
+        # G104 duplicates errcheck.
+        - G104
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+  exclusions:
+    generated: strict
+    presets:
+      - std-error-handling
+    paths:
+      - internal/store/dbq
+    rules:
+      # Tests may use simplified error handling and fixed fixtures.
+      - path: _test\.go
+        linters:
+          - gosec
+          - noctx
+          - bodyclose
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/Nanako1900/linksPage
+  exclusions:
+    generated: strict
+    paths:
+      - internal/store/dbq
