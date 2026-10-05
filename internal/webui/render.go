@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"log/slog"
 	"strconv"
+	"strings"
 
+	"github.com/Nanako1900/linksPage/internal/content"
 	"github.com/Nanako1900/linksPage/internal/site"
 )
 
@@ -23,6 +27,12 @@ const (
 	PageNotFound
 )
 
+// MarkdownRenderer renders the public Markdown subset to sanitized HTML
+// (*content.Markdown satisfies it).
+type MarkdownRenderer interface {
+	Render(src string) (string, error)
+}
+
 // Options configures a Renderer.
 type Options struct {
 	Assets     *Assets
@@ -31,6 +41,9 @@ type Options struct {
 	Logger     *slog.Logger
 	// Snapshot returns the current public snapshot (never nil).
 	Snapshot func() *site.Snapshot
+	// Markdown renders bio, footer and text blocks in the fallback markup;
+	// nil uses content.NewMarkdown().
+	Markdown MarkdownRenderer
 }
 
 // Renderer renders the HTML shells. It is safe for concurrent use.
@@ -45,8 +58,12 @@ type Renderer struct {
 // script and critical CSS.
 func NewRenderer(opts Options) (*Renderer, error) {
 	if opts.Assets == nil || opts.Snapshot == nil || opts.Logger == nil {
-		return nil, fmt.Errorf("webui: Assets, Snapshot and Logger are required")
+		return nil, errors.New("webui: Assets, Snapshot and Logger are required")
 	}
+	if opts.Markdown == nil {
+		opts.Markdown = content.NewMarkdown()
+	}
+	opts.BaseURL = strings.TrimSuffix(opts.BaseURL, "/")
 	tmpl, err := template.ParseFS(templateFS, "templates/*.gohtml")
 	if err != nil {
 		return nil, fmt.Errorf("parse templates: %w", err)
@@ -65,77 +82,182 @@ func NewRenderer(opts Options) (*Renderer, error) {
 // page is a rendered HTML document plus the headers that must accompany
 // it (including on 304 responses).
 type page struct {
-	body []byte
-	csp  string
-	etag string
+	body   []byte
+	csp    string
+	etag   string
+	status int
 }
 
-type fallbackData struct {
-	Code, Heading, Lede, Note, NoScript, LinkText string
+// pageCtx is the resolved request: snapshot, page kind and locale.
+type pageCtx struct {
+	snap      *site.Snapshot
+	pub       *site.PublicPage
+	kind      PageKind
+	path      string
+	locale    string
+	txt       uiStrings
+	community *site.CommunityView // PageCommunity only
 }
 
-type publicData struct {
-	Lang, Appearance, Title, Description, Robots string
-	CanonicalURL, SiteName, OGLocale             string
-	ThemeColorLight, ThemeColorDark              string
-	CriticalCSS                                  template.CSS
-	ThemeCSS                                     template.CSS
-	BootScript                                   template.JS
-	Styles, Preloads                             []string
-	Script                                       string
-	HasData                                      bool
-	Data                                         any
-	Fallback                                     fallbackData
-}
+func (pc pageCtx) defaultLocale() string { return pc.snap.Settings.DefaultLocale }
 
-type bootstrapEnvelope struct {
-	Data site.Bootstrap `json:"data"`
-}
+// text localizes t for the request locale.
+func (pc pageCtx) text(t site.LocalizedText) string { return t.Get(pc.locale, pc.defaultLocale()) }
 
-func (rd *Renderer) renderPublic(kind PageKind, path, langParam string) (page, error) {
+// resolve negotiates the locale and resolves the community for
+// PageCommunity; an unknown slug turns the request into PageNotFound.
+func (rd *Renderer) resolve(kind PageKind, slug, langParam, acceptLanguage string) pageCtx {
 	snap := rd.opts.Snapshot()
-	s := snap.Settings
-	locale := s.ResolveLocale(langParam)
-	txt := textFor(locale)
-	siteName := s.Title.Get(locale, s.DefaultLocale)
-	d := publicData{
-		Lang:            locale,
-		Appearance:      s.Appearance,
-		Title:           siteName,
-		Description:     s.Description.Get(locale, s.DefaultLocale),
-		CanonicalURL:    rd.opts.BaseURL + path,
-		SiteName:        siteName,
-		OGLocale:        ogLocale(locale),
-		ThemeColorLight: s.Theme.ThemeColor(false),
-		ThemeColorDark:  s.Theme.ThemeColor(true),
-		CriticalCSS:     template.CSS(CriticalCSS()), //nolint:gosec // fixed embedded content, hashed for CSP
-		ThemeCSS:        template.CSS(snap.ThemeCSS), //nolint:gosec // generated from validated hex/enum tokens
-		BootScript:      template.JS(BootScript()),   //nolint:gosec // fixed embedded content, hashed for CSP
-		Fallback:        fallbackData{Heading: siteName, Lede: s.Description.Get(locale, s.DefaultLocale), Note: txt.Loading, NoScript: txt.NoScript},
+	pub := snap.Public
+	if pub == nil {
+		pub = site.EmptyPublicPage(snap.Version, snap.Page, snap.Settings, rd.opts.BaseURL, snap.BuiltAt)
 	}
+	s := snap.Settings
+	locale := negotiateLocale(s.Locales, s.DefaultLocale, langParam, acceptLanguage)
+	pc := pageCtx{snap: snap, pub: pub, kind: kind, locale: locale, txt: textFor(locale)}
 	switch kind {
+	case PageHome:
+		pc.path = "/"
 	case PagePrivacy:
-		d.Title = txt.PrivacyTitle + " · " + siteName
-		d.Fallback.Heading = txt.PrivacyTitle
-	case PageNotFound:
-		d.Title = txt.NotFoundTitle + " · " + siteName
-		d.Robots = "noindex"
-		d.Fallback = fallbackData{Code: "404", Heading: txt.NotFoundTitle, Lede: txt.NotFoundLede, LinkText: txt.BackHome}
+		pc.path = "/privacy"
+	case PageCommunity:
+		pc.community = findCommunity(pub, slug)
+		if pc.community == nil {
+			pc.kind = PageNotFound
+		}
+		pc.path = site.PathCommunity + slug
+	}
+	return pc
+}
+
+func findCommunity(pub *site.PublicPage, slug string) *site.CommunityView {
+	if !slugRe.MatchString(slug) {
+		return nil
+	}
+	for _, c := range pub.Communities {
+		if c.Slug == slug {
+			return &c
+		}
+	}
+	return nil
+}
+
+// rendered holds the parts shared by the HTML document and RenderDTO, so
+// both always carry the same head, fallback, data, CSP and ETag.
+type rendered struct {
+	status     int
+	lang       string
+	appearance string
+	head       string
+	fallback   string
+	data       []byte // {"data": PublicPage}; nil for 404
+	public     *site.PublicPage
+	csp        string
+	etag       string
+}
+
+type publicEnvelope struct {
+	Data *site.PublicPage `json:"data"`
+}
+
+func (rd *Renderer) renderParts(pc pageCtx) (rendered, error) {
+	r := rendered{status: 200, lang: pc.locale, appearance: pc.snap.Settings.Appearance}
+	head, err := rd.executeString("head", rd.headView(pc))
+	if err != nil {
+		return rendered{}, err
+	}
+	fallback, err := rd.executeString("fallback", rd.fallbackView(pc))
+	if err != nil {
+		return rendered{}, err
+	}
+	r.head, r.fallback = head, fallback
+	if pc.kind == PageNotFound {
+		r.status = 404
+	} else {
+		// json.Marshal escapes <, >, &, U+2028 and U+2029, so the payload
+		// is safe inside <script type="application/json">.
+		data, err := json.Marshal(publicEnvelope{Data: pc.pub})
+		if err != nil {
+			return rendered{}, fmt.Errorf("encode public page: %w", err)
+		}
+		r.data, r.public = data, pc.pub
+	}
+	frame := r.public != nil && r.public.NeedsDiscordFrame()
+	r.csp = PublicCSP(rd.bootHash, rd.criticalHash, pc.snap.ThemeHash, frame)
+	r.etag = rd.publicETag(r)
+	return r, nil
+}
+
+// publicETag derives a weak validator from every input of the public
+// response: app version, manifest (entry assets), CSP, locale, status and
+// the rendered head, fallback and data.
+func (rd *Renderer) publicETag(r rendered) string {
+	h := sha256.New()
+	for _, part := range []string{
+		rd.opts.AppVersion, rd.opts.Assets.ManifestHash(), r.csp, r.lang,
+		strconv.Itoa(r.status), r.appearance, r.head, r.fallback,
+	} {
+		h.Write([]byte(part))
+		h.Write([]byte{0})
+	}
+	h.Write(r.data)
+	return `W/"` + hex.EncodeToString(h.Sum(nil)[:16]) + `"`
+}
+
+type documentData struct {
+	Lang, Appearance string
+	Head, Fallback   template.HTML
+	Data             template.JS
+	Styles, Preloads []string
+	Script           string
+}
+
+// renderPublic renders the full HTML document for a resolved request.
+func (rd *Renderer) renderPublic(pc pageCtx) (page, error) {
+	r, err := rd.renderParts(pc)
+	if err != nil {
+		return page{}, err
+	}
+	d := documentData{
+		Lang:       r.lang,
+		Appearance: r.appearance,
+		Head:       template.HTML(r.head),     //nolint:gosec // produced by html/template
+		Fallback:   template.HTML(r.fallback), //nolint:gosec // produced by html/template
+		Data:       template.JS(r.data),       //nolint:gosec // json.Marshal output (HTML-escaped)
 	}
 	if entry := rd.opts.Assets.public; entry != nil {
 		d.Styles = entry.Styles
-		if kind != PageNotFound {
+		if pc.kind != PageNotFound {
 			d.Script, d.Preloads = entry.Script, entry.Preloads
 		}
-	} else if kind != PageNotFound {
-		d.Fallback.Note = txt.MissingBuild
 	}
-	if kind != PageNotFound {
-		d.HasData = true
-		d.Data = bootstrapEnvelope{Data: snap.Bootstrap()}
+	var buf bytes.Buffer
+	if err := rd.tmpl.ExecuteTemplate(&buf, "public", d); err != nil {
+		return page{}, fmt.Errorf("render public: %w", err)
 	}
-	csp := PublicCSP(rd.bootHash, rd.criticalHash, snap.ThemeHash)
-	return rd.execute("public", d, csp)
+	return page{body: buf.Bytes(), csp: r.csp, etag: r.etag, status: r.status}, nil
+}
+
+func (rd *Renderer) executeString(name string, data any) (string, error) {
+	var buf strings.Builder
+	if err := rd.tmpl.ExecuteTemplate(&buf, name, data); err != nil {
+		return "", fmt.Errorf("render %s: %w", name, err)
+	}
+	return buf.String(), nil
+}
+
+// markdown renders src, falling back to escaped plain text when the
+// renderer fails (the page must stay up).
+func (rd *Renderer) markdown(src string) template.HTML {
+	if src == "" {
+		return ""
+	}
+	out, err := rd.opts.Markdown.Render(src)
+	if err != nil {
+		rd.opts.Logger.Debug("render markdown fallback", slog.Any("error", err))
+		return template.HTML("<p>" + template.HTMLEscapeString(src) + "</p>") //nolint:gosec // escaped
+	}
+	return template.HTML(out) //nolint:gosec // sanitized by content.Markdown (bluemonday)
 }
 
 type adminData struct {
@@ -153,23 +275,17 @@ func (rd *Renderer) renderAdmin() (page, error) {
 	} else {
 		d.Note = txt.MissingBuild
 	}
-	return rd.execute("admin", d, AdminCSP)
-}
-
-func (rd *Renderer) execute(name string, data any, csp string) (page, error) {
 	var buf bytes.Buffer
-	if err := rd.tmpl.ExecuteTemplate(&buf, name, data); err != nil {
-		return page{}, fmt.Errorf("render %s: %w", name, err)
+	if err := rd.tmpl.ExecuteTemplate(&buf, "admin", d); err != nil {
+		return page{}, fmt.Errorf("render admin: %w", err)
 	}
-	return page{body: buf.Bytes(), csp: csp, etag: rd.etag(csp, buf.Bytes())}, nil
+	return page{body: buf.Bytes(), csp: AdminCSP, etag: rd.adminETag(buf.Bytes()), status: 200}, nil
 }
 
-// etag derives a weak validator from every input that affects the
-// response: app version, manifest, CSP (which covers theme and inline
-// hashes) and the rendered body (settings version, locale, page kind).
-func (rd *Renderer) etag(csp string, body []byte) string {
+// adminETag derives a weak validator for the admin shell.
+func (rd *Renderer) adminETag(body []byte) string {
 	h := sha256.New()
-	for _, part := range []string{rd.opts.AppVersion, rd.opts.Assets.ManifestHash(), csp, strconv.Itoa(len(body))} {
+	for _, part := range []string{rd.opts.AppVersion, rd.opts.Assets.ManifestHash(), AdminCSP} {
 		h.Write([]byte(part))
 		h.Write([]byte{0})
 	}

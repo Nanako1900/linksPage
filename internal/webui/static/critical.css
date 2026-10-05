@@ -1,11 +1,33 @@
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;min-height:100vh;background:var(--lp-bg,#f9f7f1);color:var(--lp-fg,#1a1c22);font-family:var(--lp-font-sans,system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif);line-height:1.5;-webkit-font-smoothing:antialiased}
-.lp-shell{max-width:34rem;margin:0 auto;padding:3rem 1.25rem calc(3rem + env(safe-area-inset-bottom))}
-.lp-title{margin:0 0 .5rem;font-family:var(--lp-font-display,Georgia,serif);font-size:2.25rem;font-weight:400;line-height:1.15;letter-spacing:-.01em;overflow-wrap:anywhere}
-.lp-lede{margin:0 0 2rem;color:var(--lp-muted,#5f6270);overflow-wrap:anywhere}
-.lp-note{margin:0 0 1rem;padding:1rem 1.25rem;border:1px solid var(--lp-border,#e4e1d8);border-radius:var(--lp-radius,.75rem);background:var(--lp-card,#ffffff);font-size:.9375rem}
-.lp-code{margin:0 0 1rem;font-family:var(--lp-font-display,Georgia,serif);font-size:4rem;line-height:1;color:var(--lp-accent,#5b4ad8)}
-.lp-link{display:inline-flex;align-items:center;min-height:44px;color:var(--lp-accent,#5b4ad8);text-underline-offset:.2em}
-.lp-link:focus-visible{outline:2px solid var(--lp-accent,#5b4ad8);outline-offset:2px}
+.lp-fb img{max-width:100%;height:auto}
+.lp-fb .lp-shell{max-width:34rem;margin:0 auto;padding:3rem 1.25rem calc(3rem + env(safe-area-inset-bottom))}
+.lp-fb .lp-avatar{display:block;width:96px;height:96px;margin:0 0 1rem;border-radius:50%;object-fit:cover}
+.lp-fb .lp-title{margin:0 0 .5rem;font-family:var(--lp-font-display,Georgia,serif);font-size:2.25rem;font-weight:400;line-height:1.15;letter-spacing:-.01em;overflow-wrap:anywhere}
+.lp-fb .lp-lede{margin:0 0 2rem;color:var(--lp-muted,#5f6270);overflow-wrap:anywhere}
+.lp-fb .lp-md p,.lp-fb .lp-md ul,.lp-fb .lp-md ol,.lp-fb .lp-md blockquote{margin:0 0 .75rem}
+.lp-fb .lp-md a,.lp-fb .lp-social a,.lp-fb .lp-foot a{color:var(--lp-accent,#5b4ad8);text-underline-offset:.2em}
+.lp-fb .lp-h{margin:2.5rem 0 1rem;font-size:.8125rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--lp-muted,#5f6270)}
+.lp-fb .lp-card,.lp-fb .lp-row,.lp-fb .lp-note{margin:0 0 .75rem;padding:1rem 1.25rem;border:1px solid var(--lp-border,#e4e1d8);border-radius:var(--lp-radius,.75rem);background:var(--lp-card,#ffffff)}
+.lp-fb .lp-card[data-state=unavailable]{opacity:.6}
+.lp-fb .lp-card-head{display:flex;align-items:center;gap:.75rem}
+.lp-fb .lp-icon{flex:none;width:48px;height:48px;border-radius:.5rem;object-fit:cover}
+.lp-fb .lp-name{margin:0;font-size:1.0625rem;font-weight:600;overflow-wrap:anywhere}
+.lp-fb .lp-tag{font-size:.75rem;font-weight:400;color:var(--lp-muted,#5f6270)}
+.lp-fb .lp-desc,.lp-fb .lp-stat,.lp-fb .lp-qq,.lp-fb .lp-notice,.lp-fb .lp-qr figcaption{margin:.5rem 0 0;font-size:.9375rem;color:var(--lp-muted,#5f6270);overflow-wrap:anywhere}
+.lp-fb .lp-stat,.lp-fb .lp-count{font-variant-numeric:tabular-nums}
+.lp-fb .lp-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--lp-fg,#1a1c22)}
+.lp-fb .lp-chips,.lp-fb .lp-social{display:flex;flex-wrap:wrap;gap:.5rem;margin:.5rem 0 0;padding:0;list-style:none}
+.lp-fb .lp-chips li{padding:0 .5rem;border:1px solid var(--lp-border,#e4e1d8);border-radius:999px;font-size:.8125rem}
+.lp-fb .lp-qr{margin:.75rem 0 0}
+.lp-fb .lp-qr img{display:block;width:240px;border-radius:.5rem}
+.lp-fb .lp-btn,.lp-fb .lp-row,.lp-fb .lp-link,.lp-fb .lp-social a{display:inline-flex;align-items:center;min-height:44px}
+.lp-fb .lp-btn{margin-top:.75rem;padding:0 1.25rem;border-radius:var(--lp-radius,.75rem);background:var(--lp-accent,#5b4ad8);color:var(--lp-accent-fg,#ffffff);font-weight:600;text-decoration:none}
+.lp-fb .lp-row{display:flex;justify-content:space-between;color:inherit;text-decoration:none}
+.lp-fb .lp-foot{padding-top:0;font-size:.875rem;color:var(--lp-muted,#5f6270)}
+.lp-fb .lp-note{font-size:.9375rem}
+.lp-fb .lp-code{margin:0 0 1rem;font-family:var(--lp-font-display,Georgia,serif);font-size:4rem;line-height:1;color:var(--lp-accent,#5b4ad8)}
+.lp-fb .lp-link{color:var(--lp-accent,#5b4ad8);text-underline-offset:.2em}
+.lp-fb a:focus-visible{outline:2px solid var(--lp-accent,#5b4ad8);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
