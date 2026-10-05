@@ -48,10 +48,11 @@ func (s *syncBuffer) String() string {
 }
 
 type testServer struct {
-	h     http.Handler
-	ready *Readiness
-	logs  *syncBuffer
-	ping  error
+	h      http.Handler
+	holder *site.Holder
+	ready  *Readiness
+	logs   *syncBuffer
+	ping   error
 }
 
 func newTestServer(t *testing.T, opts ...func(*Deps)) *testServer {
@@ -69,6 +70,7 @@ func newTestServer(t *testing.T, opts ...func(*Deps)) *testServer {
 		t.Fatal(err)
 	}
 	holder := site.NewHolder(site.DefaultSnapshot())
+	ts.holder = holder
 	web, err := webui.NewRenderer(webui.Options{
 		Assets: assets, BaseURL: "https://links.example.com", AppVersion: "test",
 		Logger: logger, Snapshot: holder.Current,
@@ -191,7 +193,7 @@ func TestBootstrap(t *testing.T) {
 		t.Fatalf("bootstrap = %d %s", w.Code, w.Body.String())
 	}
 	var body struct {
-		Data site.Bootstrap `json:"data"`
+		Data site.PublicPage `json:"data"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
@@ -235,13 +237,15 @@ func TestAPINeverFallsBackToHTML(t *testing.T) {
 
 func TestHTMLRoutes(t *testing.T) {
 	ts := newTestServer(t)
+	ts.holder.Set(fixtureSnapshot(t))
 	tests := []struct {
 		target, wantSub, wantCSP string
 		status                   int
 	}{
 		{"/", `<script type="module" src="/assets/index-A.js">`, "script-src 'self' 'sha256-", 200},
 		{"/privacy", "lp-data", "script-src 'self' 'sha256-", 200},
-		{"/c/my-community", "lp-data", "script-src 'self' 'sha256-", 200},
+		{"/c/discord", "lp-data", "script-src 'self' 'sha256-", 200},
+		{"/c/my-community", `<p class="lp-code">404</p>`, "script-src 'self' 'sha256-", 404},
 		{"/admin", `src="/assets/admin-C.js"`, webui.AdminCSP, 200},
 		{"/admin/settings/theme", `src="/assets/admin-C.js"`, webui.AdminCSP, 200},
 		{"/random", `<p class="lp-code">404</p>`, "script-src 'self' 'sha256-", 404},

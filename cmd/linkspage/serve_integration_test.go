@@ -107,7 +107,7 @@ func TestIntegrationServe(t *testing.T) {
 		t.Fatalf("migrate status: %d %q %q", code, out.String(), errOut.String())
 	}
 	out.Reset()
-	if code := run(ctx, []string{"migrate", "up"}, &out, &errOut); code != 0 || !strings.Contains(out.String(), "applied 1 migration(s)") {
+	if code := run(ctx, []string{"migrate", "up"}, &out, &errOut); code != 0 || !strings.Contains(out.String(), "applied 2 migration(s)") {
 		t.Fatalf("migrate up: %d %q %q", code, out.String(), errOut.String())
 	}
 	out.Reset()

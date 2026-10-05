@@ -8,8 +8,11 @@ import (
 	"io/fs"
 	"log/slog"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Nanako1900/linksPage/internal/config"
 	"github.com/Nanako1900/linksPage/internal/httpapi"
@@ -43,68 +46,109 @@ func listenTCP(ctx context.Context, addr string) (net.Listener, error) {
 	return (&net.ListenConfig{}).Listen(ctx, "tcp", addr)
 }
 
+// server is everything serve needs once the components are built.
+type server struct {
+	cfg     *config.Config
+	logger  *slog.Logger
+	pool    *pgxpool.Pool
+	holder  *site.Holder
+	ready   *httpapi.Readiness
+	app     *app
+	handler http.Handler
+}
+
 func serve(ctx context.Context, cfg *config.Config, logger *slog.Logger, listen listenFunc) error {
 	logger.Info("starting linkspage", slog.String("version", version), slog.String("commit", commit),
 		slog.String("base_url", cfg.BaseURL), slog.String("addr", cfg.Server.Addr))
-	if err := probeDataDir(cfg.DataDir); err != nil {
-		return err
-	}
-	cfg, generated, err := cfg.EnsureSecretKey()
-	if err != nil {
-		return fmt.Errorf("secret key: %w", err)
-	}
-	if generated {
-		logger.Info("generated a new secret key", slog.String("path", filepath.Join(cfg.DataDir, config.SecretKeyFileName)))
-	}
-
-	assets, err := webui.LoadAssets(webui.DistFS())
-	if err != nil {
-		return fmt.Errorf("frontend assets: %w", err)
-	}
-	holder := site.NewHolder(site.DefaultSnapshot())
-	web, err := webui.NewRenderer(webui.Options{
-		Assets: assets, BaseURL: cfg.BaseURL, AppVersion: version, Logger: logger, Snapshot: holder.Current,
-	})
+	cfg, err := prepareDataDir(cfg, logger)
 	if err != nil {
 		return err
 	}
-	trusted, err := netx.ParseTrustedProxies(cfg.TrustedProxies)
-	if err != nil {
-		return fmt.Errorf("trusted_proxies: %w", err)
-	}
-
 	pool, err := store.Connect(ctx, cfg.DB)
 	if err != nil {
 		return err
 	}
-	ready := httpapi.NewReadiness(pool.Ping)
-	handler, err := httpapi.NewHandler(httpapi.Deps{
-		BaseURL: cfg.BaseURL, Version: version, Logger: logger, Ready: ready, Snapshots: holder,
-		Web: web, Resolver: netx.NewResolver(trusted, cfg.ClientIPHeader), HSTS: cfg.HSTS,
-	})
-	if err != nil {
+	s := &server{
+		cfg: cfg, logger: logger, pool: pool, holder: site.NewHolder(site.DefaultSnapshot()),
+		ready: httpapi.NewReadiness(pool.Ping),
+	}
+	if s.app, err = buildApp(cfg, logger, pool, s.holder); err != nil {
 		pool.Close()
 		return err
 	}
-	ln, err := listen(ctx, cfg.Server.Addr)
+	var ln net.Listener
+	if s.handler, err = s.newHandler(); err == nil {
+		if ln, err = listen(ctx, cfg.Server.Addr); err != nil {
+			err = fmt.Errorf("listen on %s: %w", cfg.Server.Addr, err)
+		}
+	}
 	if err != nil {
 		pool.Close()
-		return fmt.Errorf("listen on %s: %w", cfg.Server.Addr, err)
+		return joinClose(err, s.app.mstore)
 	}
+	return s.run(ctx, ln)
+}
 
+// prepareDataDir checks data_dir and makes sure a secret key exists.
+func prepareDataDir(cfg *config.Config, logger *slog.Logger) (*config.Config, error) {
+	if err := probeDataDir(cfg.DataDir); err != nil {
+		return nil, err
+	}
+	cfg, generated, err := cfg.EnsureSecretKey()
+	if err != nil {
+		return nil, fmt.Errorf("secret key: %w", err)
+	}
+	if generated {
+		logger.Info("generated a new secret key", slog.String("path", filepath.Join(cfg.DataDir, config.SecretKeyFileName)))
+	}
+	return cfg, nil
+}
+
+// newHandler builds the root HTTP handler.
+func (s *server) newHandler() (http.Handler, error) {
+	assets, err := webui.LoadAssets(webui.DistFS())
+	if err != nil {
+		return nil, fmt.Errorf("frontend assets: %w", err)
+	}
+	web, err := webui.NewRenderer(webui.Options{
+		Assets: assets, BaseURL: s.cfg.BaseURL, AppVersion: version, Logger: s.logger, Snapshot: s.holder.Current,
+	})
+	if err != nil {
+		return nil, err
+	}
+	trusted, err := netx.ParseTrustedProxies(s.cfg.TrustedProxies)
+	if err != nil {
+		return nil, fmt.Errorf("trusted_proxies: %w", err)
+	}
+	deps := httpapi.Deps{
+		BaseURL: s.cfg.BaseURL, Version: version, Logger: s.logger, Ready: s.ready, Snapshots: s.holder,
+		Web: web, Resolver: netx.NewResolver(trusted, s.cfg.ClientIPHeader), HSTS: s.cfg.HSTS,
+		ProxyAuth: s.cfg.Edge.ProxyAuth.Reveal(),
+	}
+	s.app.handlers.apply(&deps)
+	return httpapi.NewHandler(deps)
+}
+
+// run serves until ctx ends, then shuts down in the documented order
+// (doc 4.11): readiness 503 → HTTP shutdown → startup → scheduler →
+// media store → database pool.
+func (s *server) run(ctx context.Context, ln net.Listener) error {
 	runCtx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
+	sched := newBackgroundTask("scheduler", s.logger)
+	runner := newStartupRunner(dbStartupSteps(s.cfg, s.pool, s.logger, s.app, s.holder), s.holder, s.ready, s.logger)
+	runner.onReady = func() { sched.start(runCtx, s.app.sched.Run) }
 	startupDone := make(chan struct{})
-	runner := newStartupRunner(dbStartupSteps(cfg, pool, logger), holder, ready, logger)
 	go func() {
 		defer close(startupDone)
 		runner.run(runCtx, cancel)
 	}()
 
-	srv := httpapi.NewServer(cfg.Server.Addr, handler, logger)
-	logger.Info("listening", slog.String("addr", ln.Addr().String()))
-	err = httpapi.Serve(runCtx, srv, ln, ready, logger,
-		// Stop the startup goroutine before the pool it uses is closed.
+	srv := httpapi.NewServer(s.cfg.Server.Addr, s.handler, s.logger)
+	s.logger.Info("listening", slog.String("addr", ln.Addr().String()))
+	err := httpapi.Serve(runCtx, srv, ln, s.ready, s.logger,
+		// Stop the startup goroutine before the pool it uses is closed; it
+		// may still start the scheduler, which is stopped next.
 		httpapi.ShutdownStep{Name: "startup", Run: func(sctx context.Context) error {
 			cancel(nil)
 			select {
@@ -114,8 +158,10 @@ func serve(ctx context.Context, cfg *config.Config, logger *slog.Logger, listen 
 				return fmt.Errorf("startup did not stop: %w", sctx.Err())
 			}
 		}},
-		// Later milestones insert "stop scheduler" and "flush analytics" here.
-		httpapi.ShutdownStep{Name: "database pool", Run: func(context.Context) error { pool.Close(); return nil }},
+		httpapi.ShutdownStep{Name: "scheduler", Run: sched.stop},
+		// M3 inserts "flush analytics" here.
+		httpapi.ShutdownStep{Name: "media store", Run: func(context.Context) error { return s.app.mstore.Close() }},
+		httpapi.ShutdownStep{Name: "database pool", Run: func(context.Context) error { s.pool.Close(); return nil }},
 	)
 	if cause := context.Cause(runCtx); errors.Is(cause, errFatalStartup) {
 		return errors.Join(cause, err)

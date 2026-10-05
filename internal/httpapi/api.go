@@ -40,7 +40,7 @@ func humaConfig(version string) huma.Config {
 type BootstrapOutput struct {
 	CacheControl string `header:"Cache-Control"`
 	Body         struct {
-		Data site.Bootstrap `json:"data"`
+		Data *site.PublicPage `json:"data"`
 	}
 }
 
@@ -48,14 +48,25 @@ type BootstrapOutput struct {
 type publicAPI struct {
 	snapshots SnapshotSource
 	ready     *Readiness
+	render    RenderSource
+	// proxyAuth is edge.proxy_auth; empty disables the check.
+	proxyAuth []byte
+	liveTags  *etagCache
+}
+
+func (p publicAPI) checkReady() error {
+	if !p.ready.IsReady() {
+		return NewProblem(http.StatusServiceUnavailable, CodeNotReady, "the service is starting")
+	}
+	return nil
 }
 
 func (p publicAPI) bootstrap(_ context.Context, _ *struct{}) (*BootstrapOutput, error) {
-	if !p.ready.IsReady() {
-		return nil, NewProblem(http.StatusServiceUnavailable, CodeNotReady, "the service is starting")
+	if err := p.checkReady(); err != nil {
+		return nil, err
 	}
 	out := &BootstrapOutput{CacheControl: "no-cache"}
-	out.Body.Data = p.snapshots.Current().Bootstrap()
+	out.Body.Data = p.snapshots.Current().Public
 	return out, nil
 }
 
@@ -65,15 +76,20 @@ func registerOperations(api huma.API, p publicAPI) {
 		OperationID: "getPublicBootstrap",
 		Method:      http.MethodGet,
 		Path:        "/api/v1/public/bootstrap",
-		Summary:     "Public bootstrap data",
-		Description: "Site settings and the default page. The same document is embedded in HTML as #lp-data.",
+		Summary:     "Public page data",
+		Description: "The public page DTO. The same document is embedded in HTML as #lp-data.",
 		Tags:        []string{"public"},
 		Errors:      []int{http.StatusServiceUnavailable},
 	}, p.bootstrap)
+	registerLive(api, p)
+	registerRender(api, p)
 }
 
 // newAPI mounts huma on r and registers all operations.
 func newAPI(r chi.Router, version string, p publicAPI) huma.API {
+	if p.liveTags == nil {
+		p.liveTags = &etagCache{}
+	}
 	api := humachi.New(r, humaConfig(version))
 	registerOperations(api, p)
 	return api

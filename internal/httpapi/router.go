@@ -30,6 +30,18 @@ type Deps struct {
 	Resolver  *netx.Resolver
 	// HSTS sends Strict-Transport-Security (only when BaseURL is https).
 	HSTS bool
+	// ProxyAuth is edge.proxy_auth (topology C); empty disables the check.
+	ProxyAuth string
+
+	// Site files and M1 public handlers. A nil handler leaves its route
+	// unmounted (404).
+	Favicon  http.Handler
+	Robots   http.Handler
+	Manifest http.Handler
+	GoLink   http.Handler
+	Uploads  http.Handler
+	ImgProxy http.Handler
+	QR       http.Handler
 }
 
 func (d Deps) validate() error {
@@ -52,6 +64,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
+	proxyAuth := []byte(d.ProxyAuth)
 	r := chi.NewRouter()
 	r.Use(
 		requestContext(d.Logger),
@@ -61,19 +74,28 @@ func NewHandler(d Deps) (http.Handler, error) {
 		securityHeaders(d.HSTS && strings.HasPrefix(d.BaseURL, "https://")),
 		cop.Handler,
 		identityRanges,
+		rateLimits(edgeRequest(proxyAuth), EdgeRenderLimit),
 		middleware.Compress(compressLevel, "text/html", "text/css", "text/javascript", "application/javascript",
 			"application/json", ProblemContentType, "application/openapi+json", "image/svg+xml"),
 		middleware.GetHead,
 	)
 
 	// 1. API (huma). Unknown /api/* paths are problem+json, never HTML.
-	api := newAPI(r, d.Version, publicAPI{snapshots: d.Snapshots, ready: d.Ready})
+	api := newAPI(r, d.Version, publicAPI{snapshots: d.Snapshots, ready: d.Ready, render: d.Web, proxyAuth: proxyAuth})
 	r.Get(OpenAPIPath, openAPIHandler(api))
 
-	// 2. Static assets from the embedded build.
+	// 2. Static assets from the embedded build and generated site files.
 	r.Handle("/assets/*", d.Web.AssetsHandler())
+	mountGet(r, "/favicon.ico", d.Favicon)
+	mountGet(r, "/robots.txt", d.Robots)
+	mountGet(r, "/site.webmanifest", d.Manifest)
 
-	// 3. Health endpoints.
+	// 3. Join redirects, media and health endpoints. /go is never
+	// rate limited (doc 4.11).
+	mountGet(r, "/go/{slug}", d.GoLink)
+	mountGet(r, "/media/u/{key}", d.Uploads)
+	mountGet(r, "/media/p/{file}", d.ImgProxy)
+	mountGet(r, "/media/q/{id}", d.QR)
 	r.Get("/healthz", healthz)
 	r.Get("/readyz", readyz(d.Ready))
 
@@ -104,6 +126,13 @@ func NewHandler(d Deps) (http.Handler, error) {
 	})
 
 	return r, nil
+}
+
+// mountGet mounts h for GET (and HEAD) when it is not nil.
+func mountGet(r chi.Router, pattern string, h http.Handler) {
+	if h != nil {
+		r.Get(pattern, h.ServeHTTP)
+	}
 }
 
 // crossOriginProtection rejects cross-origin unsafe requests, trusting
