@@ -49,8 +49,11 @@ etag=$(printf '%s' "$h200" | header etag)
 h304=$(curl -s -D - -o /dev/null -H 'Accept-Encoding: gzip' -H "If-None-Match: $etag" "$B/")
 printf '%s' "$h304" | head -1 | grep -q ' 304' || { echo "conditional GET is not 304" >&2; exit 1; }
 csp=$(printf '%s' "$h200" | header content-security-policy)
-[ -n "$csp" ] && [ "$csp" = "$(printf '%s' "$h304" | header content-security-policy)" ] \
-  || { echo "304 must carry the same CSP as the 200" >&2; exit 1; }
+csp304=$(printf '%s' "$h304" | header content-security-policy)
+if [ -z "$csp" ] || [ "$csp" != "$csp304" ]; then
+  echo "304 must carry the same CSP as the 200" >&2
+  exit 1
+fi
 printf '%s' "$h304" | header vary | grep -qi 'accept-encoding' || { echo "304 lacks Vary" >&2; exit 1; }
 
 # cloudflared must get the reserved address (the dummy token makes it exit).
