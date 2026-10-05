@@ -435,17 +435,17 @@ type Provider interface {
 
 | 数据源 | 用途 | 事实与处理 |
 |---|---|---|
-| `GET /api/guilds/{id}/widget.json` | 名称、频道、在线成员、`presence_count`、`instant_invite` | - 不需要认证，但要开启 Server Widget<br>- 没有 CORS 头<br>- `max-age=300`，拉取间隔低于 5 分钟没有意义<br>- `instant_invite` 是临时的，Invite Channel 设为 None 时为 null<br>- 不含图标和总人数 |
-| `GET /api/v10/invites/{code}?with_counts=true` | 图标、splash、`approximate_member_count`、`approximate_presence_count` | 需要管理员提供永久邀请码；每 15 分钟拉一次。限流规则是 **UNVERIFIED** |
+| `GET /api/guilds/{id}/widget.json` | 名称、频道、在线成员、`presence_count`、`instant_invite` | - 不需要认证，但要开启 Server Widget<br>- 不带 `Origin` 时没有 CORS 头；带 `Origin` 时会回显该 Origin 并允许 credentials（2026-10-05 实测）。不影响「由服务端拉取」的结论<br>- `max-age=300`，拉取间隔低于 5 分钟没有意义；错误响应（403/404）**同样** `max-age=300`，管理员刚开启 Widget 后最多还要等 5 分钟<br>- `instant_invite` 是临时的，Invite Channel 设为 None 时为 null<br>- 不含图标和总人数 |
+| `GET /api/v10/invites/{code}?with_counts=true` | 图标、splash、`approximate_member_count`、`approximate_presence_count` | 需要管理员提供永久邀请码；每 15 分钟拉一次。响应没有 `cache-control`；无认证请求不返回 `x-ratelimit-*`，限流规则仍是 **UNVERIFIED** |
 | 官方 iframe | 可选的嵌入模式 | - 默认关闭，用 facade 方式点击后才加载<br>- `theme` 跟随外观模式<br>- sandbox 属性照搬官方写法<br>- 开启后 CSP 加 `frame-src https://discord.com` |
 
-**错误码映射**（参照 Discord JSON 错误码表；10004 已当日实测）：
+**错误码映射**（参照 Discord JSON 错误码表；50004、10004、10006 均已于 2026-10-05 实测，见 `docs/spikes/providers.md`）：
 
-| 错误码 | 含义 | 卡片状态 | 后台提示 |
-|---|---|---|---|
-| 50004 | Widget 未开启 | `static` | 请在服务器设置中开启 Widget |
-| 10004 | 服务器不存在 | `unavailable` | — |
-| 10006 | 永久邀请失效 | `degraded` | 告警并通知 |
+| 错误码 | HTTP | 含义 | 卡片状态 | 后台提示 |
+|---|---|---|---|---|
+| 50004 | 403 | Widget 未开启 | `static` | 请在服务器设置中开启 Widget（生效可能要等 5 分钟） |
+| 10004 | 404 | 服务器不存在 | `unavailable` | — |
+| 10006 | 404 | 永久邀请失效 | `degraded` | 告警并通知 |
 
 **在线人数：** 有永久邀请时，优先用 invite 的 `approximate_presence_count`；否则用 widget 的 `presence_count`。API 中同时返回 `onlineSource`。
 
@@ -457,10 +457,14 @@ type Provider interface {
 ### 5.4 KOOK
 
 **免 token 级（M1）：**
-- 请求 `GET https://www.kookapp.cn/api/v3/badge/guild?guild_id=&style=0|2`，**不跟随重定向**，只解析 Location（`img.shields.io/static/v1?...`）里的 `label` 参数：
+- 请求 `GET https://www.kookapp.cn/api/v3/badge/guild?guild_id=&style=0|2`，**不跟随重定向**，只解析 Location（`img.shields.io/static/v1?...`）里的 `label` 参数，并按**请求时的 style** 解释（服务器名本身可能就是 `5 ONLINE`）：
   - `style=0`：服务器名。
+  - `style=1`：`在线 ONLINE`（实测存在，M1 不使用）。
   - `style=2`：`在线/总数 ONLINE`。
+  - 不认识的 style 值按 `style=0` 处理。
 - `label` 含「服务器不存在或非公开」，或者 `message=404` 时，状态记为 `unavailable`，后台提示「请把服务器设为公开」。
+- **非法或缺失的 `guild_id` 同样返回 302 + 「服务器不存在或非公开」**，不会返回 4xx。所以必须先在本地校验（`^\d{1,20}$`），否则会把输入错误误判成「非公开」。
+- 上游响应没有 `cache-control`、CORS 头和任何限流头：刷新节奏由我们自己的 TTL 控制，限流规则 **UNVERIFIED**（M1 与 Discord widget 一样每 5 分钟拉一次）。
 - **不代理、不内联这张 SVG。** 卡片由主题原生渲染。图标由管理员上传。
 - 这个格式没有文档，要录 fixture。解析失败时降级为 `static` 卡片并告警。
 
@@ -1234,7 +1238,7 @@ CMD ["serve"]
 
 **拓扑 C（边缘前端）：**
 1. `deploy/cloudflare-worker/` 中的 wrangler 配置：绑定 Static Assets，`run_worker_first` 只匹配 HTML 路由。
-2. 在 Workers Routes 中把 `links.example.com/api/*`、`/go/*`、`/c/*`、`/media/*`、`/healthz` 设为 **None** 路由。
+2. 在 Workers Routes 中把 `links.example.com/api/*`、`/go/*`、`/media/*`、`/healthz`、`/readyz`、`/favicon.ico`、`/robots.txt`、`/site.webmanifest`、`/admin*` 设为 **None** 路由。`/c/*` 由 Worker 渲染，不设为 None（契约第 9 节；完整清单见 `deploy/cloudflare-worker/README.zh-CN.md`）。
 3. 源站仍然按 A 或 B 接入，使用同一主机名。
 4. 用 `wrangler secret put LP_PROXY_AUTH` 配置共享密钥，app 端用 `LP_EDGE__PROXY_AUTH_FILE` 读取。
 5. 发版时部署同一个 tag 构建出的 `web-dist.tar.gz`。
