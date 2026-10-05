@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Nanako1900/linksPage/internal/media"
 	"github.com/Nanako1900/linksPage/internal/store/dbq"
 )
 
@@ -25,6 +26,37 @@ type Snapshot struct {
 	ThemeCSS  string
 	ThemeHash string
 	BuiltAt   time.Time
+
+	// Public is the public DTO (never nil; empty content before the first
+	// build).
+	Public *PublicPage
+	// Head holds server-only <head> metadata.
+	Head HeadMeta
+	// Files are the in-memory site files (nil before the first build).
+	Files *media.SiteFiles
+}
+
+// HeadMeta is <head> metadata that is not part of the public DTO.
+type HeadMeta struct {
+	// OGTitle / OGDescription fall back to Title / Description.
+	OGTitle       LocalizedText
+	OGDescription LocalizedText
+	// OGImage is root-relative (prefix base_url when rendering), nil →
+	// twitter:card "summary" without og:image.
+	OGImage *ImageView
+	// Robots is "index" or "noindex" (settings.searchIndexing).
+	Robots string
+	// Icons are root-relative favicon URLs by size (32, 180, 192, 512);
+	// empty before the first build.
+	Icons map[int]string
+}
+
+// NextBoundary returns the public page's next visibility boundary, if any.
+func (s *Snapshot) NextBoundary() (time.Time, bool) {
+	if s.Public == nil || s.Public.NextBoundary == nil {
+		return time.Time{}, false
+	}
+	return *s.Public.NextBoundary, true
 }
 
 // NewSnapshot validates settings and precomputes the theme CSS and hash.
@@ -43,6 +75,8 @@ func NewSnapshot(version int64, page Page, settings Settings, now time.Time) (*S
 		ThemeCSS:  css,
 		ThemeHash: CSPHash(css),
 		BuiltAt:   now,
+		Public:    EmptyPublicPage(version, page, settings, "", now),
+		Head:      HeadMeta{OGTitle: LocalizedText{}, OGDescription: LocalizedText{}, Robots: settings.SearchIndexing, Icons: map[int]string{}},
 	}, nil
 }
 
