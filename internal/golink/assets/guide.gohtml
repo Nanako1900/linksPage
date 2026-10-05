@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="{{.Lang}}"{{if .Appearance}} data-appearance="{{.Appearance}}"{{end}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+{{- if .ThemeColor}}
+<meta name="theme-color" content="{{.ThemeColor}}">
+{{- end}}
+<title>{{.Title}}</title>
+<style>{{.ThemeCSS}}</style>
+<style>{{.CSS}}</style>
+</head>
+<body class="lp-page lp-page--{{.Kind}}">
+{{- if eq .Kind "open-in-browser"}}
+<div class="lp-scrim" role="note">
+<svg class="lp-arrow" viewBox="0 0 80 80" role="img" aria-label="{{.T.OpenInBrowserAlt}}"><path d="M14 66 C 22 38, 40 22, 66 14"/><path d="M48 12 L 66 14 L 62 32"/></svg>
+<p class="lp-scrim-text">{{.OpenInBrowser}}</p>
+</div>
+{{- end}}
+<main class="lp-main">
+<p class="lp-eyebrow">{{.SiteTitle}}</p>
+<h1 class="lp-title">{{.Heading}}{{if .Platform}}<span class="lp-tag">{{.Platform}}</span>{{end}}</h1>
+{{- if .Lede}}
+<p class="lp-lede">{{.Lede}}</p>
+{{- end}}
+{{- if eq .Kind "open-in-browser"}}
+<section class="lp-panel">
+<p class="lp-label">{{.T.LinkLabel}}</p>
+<code class="lp-value">{{.CopyURL}}</code>
+<div class="lp-actions"><button type="button" class="lp-btn lp-copy" data-copy="{{.CopyURL}}" data-done="{{.T.Copied}}" aria-live="polite">{{.T.CopyLink}}</button></div>
+</section>
+{{- end}}
+{{- if .QQNumber}}
+<section class="lp-panel">
+<p class="lp-label">{{.T.GroupNumberLabel}}</p>
+<p class="lp-number">{{.QQNumber}}</p>
+<div class="lp-actions"><button type="button" class="lp-btn lp-copy" data-copy="{{.QQNumber}}" data-done="{{.T.Copied}}" aria-live="polite">{{.T.CopyGroupNumber}}</button></div>
+<p class="lp-hint">{{.QQHint}}</p>
+</section>
+{{- end}}
+{{- with .QR}}
+<section class="lp-panel lp-qr-wrap">
+<img class="lp-qr" src="{{.URL}}" width="{{.Width}}" height="{{.Height}}" alt="{{$.T.QRAlt}}" decoding="async">
+<p class="lp-qr-cap">{{$.T.ScanQR}}</p>
+{{- if .Note}}
+<p class="lp-qr-note">{{.Note}}</p>
+{{- end}}
+</section>
+{{- end}}
+{{- if .ShowNoQR}}
+<section class="lp-panel"><p class="lp-hint">{{.T.NoQR}}</p></section>
+{{- end}}
+{{- with .Contact}}
+<section class="lp-panel">
+<p class="lp-label">{{.Label}}</p>
+<code class="lp-value">{{.Value}}</code>
+<div class="lp-actions"><button type="button" class="lp-btn lp-btn--quiet lp-copy" data-copy="{{.Value}}" data-done="{{$.T.Copied}}" aria-live="polite">{{.Button}}</button></div>
+</section>
+{{- end}}
+{{- if .Others}}
+<section class="lp-section" aria-labelledby="lp-others">
+<h2 class="lp-h2" id="lp-others"><span>{{.T.OtherCommunities}}</span><span>{{len .Others}}</span></h2>
+<ul class="lp-list">
+{{- range .Others}}
+<li><a href="{{.Href}}"><span class="lp-list-name">{{.Name}}</span>{{if .Platform}}<span class="lp-list-meta">{{.Platform}}</span>{{end}}<span class="lp-chev" aria-hidden="true">→</span></a></li>
+{{- end}}
+</ul>
+</section>
+{{- end}}
+<p class="lp-foot"><a class="lp-link" href="/">{{.T.BackHome}}</a></p>
+</main>
+<script>{{.Script}}</script>
+</body>
+</html>
