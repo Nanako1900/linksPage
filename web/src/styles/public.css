@@ -1,0 +1,36 @@
+@import "tailwindcss" source(none);
+@import "./tokens.css";
+
+@source "../public";
+@source "../shared";
+@source "../../../internal/webui/templates";
+
+/* Only semantic, runtime-themable colors: drop the default palette. */
+@theme {
+  --color-*: initial;
+}
+
+@theme inline {
+  --color-bg: var(--lp-bg);
+  --color-fg: var(--lp-fg);
+  --color-muted: var(--lp-muted);
+  --color-surface: var(--lp-card);
+  --color-border: var(--lp-border);
+  --color-accent: var(--lp-accent);
+  --color-accent-fg: var(--lp-accent-fg);
+  --radius-card: var(--lp-radius);
+  --font-sans: var(--lp-font-sans);
+  --font-display: var(--lp-font-display);
+}
+
+@custom-variant dark (&:where([data-appearance="dark"], [data-appearance="dark"] *));
+@custom-variant preset-glass (&:where([data-preset="lumen-glass"], [data-preset="lumen-glass"] *));
+@custom-variant preset-bento (&:where([data-preset="terminal-bento"], [data-preset="terminal-bento"] *));
+
+@layer base {
+  html {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+  }
+}
