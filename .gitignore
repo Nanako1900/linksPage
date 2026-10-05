@@ -1,0 +1,21 @@
+# Local tooling state
+.omc/
+.claude/settings.local.json
+.DS_Store
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+config/config.yaml
+secrets/
+
+# Build output & dependencies
+node_modules/
+web/dist/
+dist/
+bin/
+coverage/
+*.test
+*.out
+tmp/
