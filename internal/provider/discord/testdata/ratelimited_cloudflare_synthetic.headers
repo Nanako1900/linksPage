@@ -1,0 +1,5 @@
+HTTP/1.1 429 Too Many Requests
+X-Fixture-Note: SYNTHETIC, Cloudflare-level ban (error 1015) returns HTML without JSON body or rate-limit headers
+content-type: text/html; charset=UTF-8
+server: cloudflare
+

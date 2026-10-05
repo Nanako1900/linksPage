@@ -1,0 +1,11 @@
+HTTP/1.1 429 Too Many Requests
+X-Fixture-Note: SYNTHETIC, hand-written from the Discord rate-limit documentation (not observed live)
+content-type: application/json
+retry-after: 65
+x-ratelimit-limit: 10
+x-ratelimit-remaining: 0
+x-ratelimit-reset: 1791208133.123
+x-ratelimit-reset-after: 64.57
+x-ratelimit-bucket: abcd1234
+x-ratelimit-scope: shared
+

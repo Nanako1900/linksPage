@@ -1,0 +1,173 @@
+{
+  "id": "1114391825336250432",
+  "name": "Nanako‘s Community",
+  "instant_invite": "https://discord.com/invite/KwdRuAkT",
+  "channels": [
+    {
+      "id": "1433123674788986920",
+      "name": "Nanako's Room",
+      "position": 4
+    },
+    {
+      "id": "1159618767396032542",
+      "name": "Room 1",
+      "position": 1
+    },
+    {
+      "id": "1174161623129268315",
+      "name": "Room 2",
+      "position": 2
+    },
+    {
+      "id": "1196148433967394837",
+      "name": "Room 3",
+      "position": 3
+    }
+  ],
+  "members": [
+    {
+      "id": "0",
+      "username": "user1",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "idle",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED"
+    },
+    {
+      "id": "1",
+      "username": "user2",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED"
+    },
+    {
+      "id": "2",
+      "username": "user3",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED"
+    },
+    {
+      "id": "3",
+      "username": "user4",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED",
+      "game": {
+        "name": "Game 1"
+      }
+    },
+    {
+      "id": "4",
+      "username": "user5",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED"
+    },
+    {
+      "id": "5",
+      "username": "user6",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED"
+    },
+    {
+      "id": "6",
+      "username": "user7",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED"
+    },
+    {
+      "id": "7",
+      "username": "user8",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED"
+    },
+    {
+      "id": "8",
+      "username": "user9",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED"
+    },
+    {
+      "id": "9",
+      "username": "user10",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED",
+      "game": {
+        "name": "Game 2"
+      }
+    },
+    {
+      "id": "10",
+      "username": "user11",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "idle",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED"
+    },
+    {
+      "id": "11",
+      "username": "user12",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED"
+    },
+    {
+      "id": "12",
+      "username": "user13",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED",
+      "game": {
+        "name": "Game 3"
+      }
+    },
+    {
+      "id": "13",
+      "username": "user14",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED",
+      "game": {
+        "name": "Game 4"
+      }
+    },
+    {
+      "id": "14",
+      "username": "user15",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "online",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED",
+      "game": {
+        "name": "Game 5"
+      }
+    },
+    {
+      "id": "15",
+      "username": "user16",
+      "discriminator": "0000",
+      "avatar": null,
+      "status": "idle",
+      "avatar_url": "https://cdn.discordapp.com/widget-avatars/REDACTED/REDACTED"
+    }
+  ],
+  "presence_count": 16
+}

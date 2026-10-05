@@ -1,0 +1,10 @@
+HTTP/2 404
+X-Fixture-Note: recorded 2026-10-05
+date: Mon, 05 Oct 2026 13:48:05 GMT
+content-type: application/json
+content-length: 43
+server: cloudflare
+cache-control: public, max-age=300, s-maxage=300
+x-discord-features: guild-widgets
+cf-cache-status: MISS
+

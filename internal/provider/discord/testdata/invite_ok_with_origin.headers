@@ -1,0 +1,13 @@
+HTTP/2 200
+X-Fixture-Note: recorded 2026-10-05 with request header Origin: https://example.com
+date: Mon, 05 Oct 2026 13:48:26 GMT
+content-type: application/json
+server: cloudflare
+access-control-allow-origin: https://example.com
+access-control-allow-credentials: true
+access-control-allow-methods: POST, GET, PUT, PATCH, DELETE
+access-control-allow-headers: Content-Type, Authorization, X-Audit-Log-Reason, X-Track, X-Super-Properties, X-Context-Properties, X-Failed-Requests, X-Fingerprint, X-RPC-Proxy, X-Discord-Locale, X-Discord-Original-MD5, X-Discord-Timezone, X-Debug-Options, x-client-trace-id, If-None-Match, X-Captcha-Key, X-Captcha-Rqtoken, X-Captcha-Session-Id, X-Discord-Resource-Optimization-Level, x-science-test, X-Discord-MFA-Authorization, Range, X-RateLimit-Precision, X-Discord-Features, X-Installation-Id
+x-discord-features: invites
+vary: Accept-Encoding
+cf-cache-status: BYPASS
+
