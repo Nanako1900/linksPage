@@ -13,9 +13,16 @@ secrets/
 # Build output & dependencies
 node_modules/
 web/dist/
-dist/
-bin/
+/dist/
+/bin/
 coverage/
 *.test
 *.out
 tmp/
+
+# Embedded frontend build (copied from web/dist); keep placeholder
+internal/webui/dist/*
+!internal/webui/dist/.gitkeep
+
+# Local backups created by the backup profile
+backups/

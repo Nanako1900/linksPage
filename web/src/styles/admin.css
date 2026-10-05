@@ -1,0 +1,15 @@
+/* Admin uses its own neutral theme, independent of the public tokens. */
+@import "tailwindcss" source(none);
+
+@source "../admin";
+
+@theme {
+  --color-*: initial;
+  --color-bg: #fafafa;
+  --color-fg: #18181b;
+  --color-muted: #71717a;
+  --color-surface: #ffffff;
+  --color-border: #e4e4e7;
+  --color-accent: #18181b;
+  --color-accent-fg: #fafafa;
+}

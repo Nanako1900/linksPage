@@ -1,0 +1,25 @@
+# pnpm settings for the standalone web/ project (not a multi-package workspace).
+# Dependency build scripts are denied unless listed as true here.
+allowBuilds:
+  # esbuild is only pulled in by orval; its postinstall is an optional
+  # binary check and the platform package ships the binary already.
+  esbuild: false
+
+# Versions published less than a day before they were added. Remove entries
+# once they are older than the release cooldown.
+minimumReleaseAgeExclude:
+  - '@orval/angular@8.40.0'
+  - '@orval/axios@8.40.0'
+  - '@orval/core@8.40.0'
+  - '@orval/effect@8.40.0'
+  - '@orval/fetch@8.40.0'
+  - '@orval/hono@8.40.0'
+  - '@orval/mcp@8.40.0'
+  - '@orval/mock@8.40.0'
+  - '@orval/pinia-colada@8.40.0'
+  - '@orval/query@8.40.0'
+  - '@orval/solid-start@8.40.0'
+  - '@orval/swr@8.40.0'
+  - '@orval/zod@8.40.0'
+  - '@vitejs/plugin-react@6.1.2'
+  - orval@8.40.0

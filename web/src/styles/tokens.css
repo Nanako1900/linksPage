@@ -1,0 +1,32 @@
+/*
+ * Public theme token defaults ("Signal Paper", sRGB hex baseline).
+ * Go injects overrides in the unlayered <style id="lp-theme">, which wins
+ * over this layer. Keep names in sync with internal/site/theme.go.
+ */
+@layer base {
+  :root {
+    --lp-bg: #f9f7f1;
+    --lp-fg: #1a1c22;
+    --lp-muted: #5f6270;
+    --lp-card: #ffffff;
+    --lp-border: #e4e1d8;
+    --lp-accent: #5b4ad8;
+    --lp-accent-fg: #ffffff;
+    --lp-radius: 0.75rem;
+    --lp-font-sans:
+      system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "HarmonyOS Sans SC",
+      "MiSans", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    --lp-font-display:
+      "Instrument Serif", "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", Georgia, serif;
+  }
+
+  [data-appearance="dark"] {
+    --lp-bg: #111216;
+    --lp-fg: #ecebe6;
+    --lp-muted: #9a9cab;
+    --lp-card: #1a1b21;
+    --lp-border: #2c2e36;
+    --lp-accent: #8b7ff0;
+    --lp-accent-fg: #111216;
+  }
+}

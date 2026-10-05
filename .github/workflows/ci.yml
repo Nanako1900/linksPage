@@ -1,0 +1,147 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: go (${{ matrix.go }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ["1.26.x", "1.27.x"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go }}
+      - name: golangci-lint
+        if: matrix.go == '1.27.x'
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.14.0
+      - name: No style= attributes in Go templates
+        run: "! grep -rn 'style=' internal/webui/templates"
+      - run: go vet ./...
+      - name: go test (race, testcontainers)
+        run: go test -race -coverprofile=coverage.out ./...
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -1
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+      - name: OpenAPI drift
+        run: |
+          go run ./cmd/linkspage openapi > /tmp/openapi.json
+          diff -u web/openapi.json /tmp/openapi.json
+      - name: sqlc diff
+        run: docker run --rm -v "$PWD":/src -w /src sqlc/sqlc:1.31.1 diff
+      - name: Build with an empty frontend dist
+        run: |
+          test "$(ls -A internal/webui/dist)" = ".gitkeep"
+          go build ./cmd/linkspage
+
+  go-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.x"
+      - run: go test -race ./internal/...
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build image (arm64)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          tags: linkspage:ci
+          cache-from: type=gha,scope=arm64
+          cache-to: type=gha,mode=max,scope=arm64
+      - name: Compose smoke test (arm64)
+        run: deploy/ci/smoke.sh linkspage ci
+
+  web:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint:ci
+      - run: pnpm typecheck
+      - run: pnpm test:coverage
+      - run: pnpm build
+      - run: pnpm size
+      - name: orval drift
+        run: |
+          pnpm gen:api
+          git diff --exit-code -- src/shared/api/gen
+          test -z "$(git status --porcelain -- src/shared/api/gen)"
+
+  compose:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compose config (bundled compose)
+        run: deploy/ci/compose-check.sh docker compose
+      - name: Compose config (compose v2.20.1, minimum supported)
+        run: |
+          curl -fsSL -o /tmp/docker-compose \
+            https://github.com/docker/compose/releases/download/v2.20.1/docker-compose-linux-x86_64
+          echo "804aa825c58b375901ba9dc9d0aa1648ce305d903a58f2a5c42bb5c6873b02bf  /tmp/docker-compose" | sha256sum -c -
+          chmod +x /tmp/docker-compose
+          deploy/ci/compose-check.sh /tmp/docker-compose
+      - name: shellcheck
+        run: shellcheck deploy/init.sh deploy/backup/backup.sh deploy/ci/*.sh
+
+  docker:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build image (no push)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          tags: linkspage:ci
+          build-args: |
+            VERSION=ci
+            COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build backup image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: deploy/backup
+          load: true
+          tags: linkspage-backup:ci
+      - name: Backup script (failure and encrypted paths)
+        run: deploy/ci/backup-check.sh linkspage-backup:ci
+      - name: Compose smoke test (healthcheck must turn healthy)
+        run: deploy/ci/smoke.sh linkspage ci

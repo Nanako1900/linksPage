@@ -1,0 +1,5 @@
+# Topology A (reverse proxy / orange cloud) or local debugging:
+#   docker compose -f compose.yaml -f deploy/compose.direct.yaml up -d
+services:
+  app:
+    ports: ["${LINKSPAGE_BIND:-127.0.0.1}:${LINKSPAGE_PORT:-8080}:8080"]

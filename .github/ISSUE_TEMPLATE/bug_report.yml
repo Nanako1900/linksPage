@@ -1,0 +1,22 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+  - type: input
+    id: version
+    attributes:
+      label: Version (`docker compose run --rm --no-deps app version`)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs (remove secrets and IPs)
+      render: text

@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true, "root": ".." },
+  "files": {
+    "includes": ["**", "!src/shared/api/gen", "!openapi.json", "!dist", "!coverage"]
+  },
+  "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
+  "css": { "parser": { "tailwindDirectives": true } },
+  "linter": {
+    "rules": {
+      "preset": "recommended",
+      "security": { "noDangerouslySetInnerHtml": "error" },
+      "suspicious": { "noConsole": "error" }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/public/**", "src/shared/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@tanstack/react-router": "Admin-only: keep the public bundle small.",
+                  "@tanstack/react-query": "Admin-only: keep the public bundle small.",
+                  "i18next": "Public pages use the built-in t().",
+                  "react-i18next": "Public pages use the built-in t().",
+                  "react-hook-form": "Admin-only.",
+                  "recharts": "Admin-only.",
+                  "zod": "Keep zod out of the public entry; validate with small guards."
+                },
+                "patterns": [
+                  { "group": ["**/admin/**", "@base-ui/*"], "message": "Public code must not import admin code." }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

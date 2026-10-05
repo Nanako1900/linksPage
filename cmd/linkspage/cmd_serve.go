@@ -1,0 +1,137 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"io/fs"
+	"log/slog"
+	"net"
+	"os"
+	"path/filepath"
+
+	"github.com/Nanako1900/linksPage/internal/config"
+	"github.com/Nanako1900/linksPage/internal/httpapi"
+	"github.com/Nanako1900/linksPage/internal/netx"
+	"github.com/Nanako1900/linksPage/internal/site"
+	"github.com/Nanako1900/linksPage/internal/store"
+	"github.com/Nanako1900/linksPage/internal/webui"
+)
+
+func cmdServe(ctx context.Context, args []string, stderr io.Writer) int {
+	if !noArgs("serve", args, stderr) {
+		return 2
+	}
+	loaded, ok := loadConfig(stderr)
+	if !ok {
+		return 1
+	}
+	logger := newLogger(stderr, loaded.Config.Log)
+	logWarnings(logger, loaded.Warnings)
+	if err := serve(ctx, loaded.Config, logger, listenTCP); err != nil {
+		logger.Error("server stopped with error", slog.Any("error", err))
+		return 1
+	}
+	return 0
+}
+
+// listenFunc opens the server listener for addr.
+type listenFunc func(ctx context.Context, addr string) (net.Listener, error)
+
+func listenTCP(ctx context.Context, addr string) (net.Listener, error) {
+	return (&net.ListenConfig{}).Listen(ctx, "tcp", addr)
+}
+
+func serve(ctx context.Context, cfg *config.Config, logger *slog.Logger, listen listenFunc) error {
+	logger.Info("starting linkspage", slog.String("version", version), slog.String("commit", commit),
+		slog.String("base_url", cfg.BaseURL), slog.String("addr", cfg.Server.Addr))
+	if err := probeDataDir(cfg.DataDir); err != nil {
+		return err
+	}
+	cfg, generated, err := cfg.EnsureSecretKey()
+	if err != nil {
+		return fmt.Errorf("secret key: %w", err)
+	}
+	if generated {
+		logger.Info("generated a new secret key", slog.String("path", filepath.Join(cfg.DataDir, config.SecretKeyFileName)))
+	}
+
+	assets, err := webui.LoadAssets(webui.DistFS())
+	if err != nil {
+		return fmt.Errorf("frontend assets: %w", err)
+	}
+	holder := site.NewHolder(site.DefaultSnapshot())
+	web, err := webui.NewRenderer(webui.Options{
+		Assets: assets, BaseURL: cfg.BaseURL, AppVersion: version, Logger: logger, Snapshot: holder.Current,
+	})
+	if err != nil {
+		return err
+	}
+	trusted, err := netx.ParseTrustedProxies(cfg.TrustedProxies)
+	if err != nil {
+		return fmt.Errorf("trusted_proxies: %w", err)
+	}
+
+	pool, err := store.Connect(ctx, cfg.DB)
+	if err != nil {
+		return err
+	}
+	ready := httpapi.NewReadiness(pool.Ping)
+	handler, err := httpapi.NewHandler(httpapi.Deps{
+		BaseURL: cfg.BaseURL, Version: version, Logger: logger, Ready: ready, Snapshots: holder,
+		Web: web, Resolver: netx.NewResolver(trusted, cfg.ClientIPHeader), HSTS: cfg.HSTS,
+	})
+	if err != nil {
+		pool.Close()
+		return err
+	}
+	ln, err := listen(ctx, cfg.Server.Addr)
+	if err != nil {
+		pool.Close()
+		return fmt.Errorf("listen on %s: %w", cfg.Server.Addr, err)
+	}
+
+	runCtx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	startupDone := make(chan struct{})
+	runner := newStartupRunner(dbStartupSteps(cfg, pool, logger), holder, ready, logger)
+	go func() {
+		defer close(startupDone)
+		runner.run(runCtx, cancel)
+	}()
+
+	srv := httpapi.NewServer(cfg.Server.Addr, handler, logger)
+	logger.Info("listening", slog.String("addr", ln.Addr().String()))
+	err = httpapi.Serve(runCtx, srv, ln, ready, logger,
+		// Stop the startup goroutine before the pool it uses is closed.
+		httpapi.ShutdownStep{Name: "startup", Run: func(sctx context.Context) error {
+			cancel(nil)
+			select {
+			case <-startupDone:
+				return nil
+			case <-sctx.Done():
+				return fmt.Errorf("startup did not stop: %w", sctx.Err())
+			}
+		}},
+		// Later milestones insert "stop scheduler" and "flush analytics" here.
+		httpapi.ShutdownStep{Name: "database pool", Run: func(context.Context) error { pool.Close(); return nil }},
+	)
+	if cause := context.Cause(runCtx); errors.Is(cause, errFatalStartup) {
+		return errors.Join(cause, err)
+	}
+	return err
+}
+
+// probeDataDir verifies data_dir is writable.
+func probeDataDir(dir string) error {
+	f, err := os.CreateTemp(dir, ".write-probe-*")
+	if err != nil {
+		if errors.Is(err, fs.ErrPermission) {
+			return fmt.Errorf("data_dir %s is not writable (%w); fix with: chown -R 65532:65532 ./data", dir, err)
+		}
+		return fmt.Errorf("data_dir %s: %w", dir, err)
+	}
+	name := f.Name()
+	return errors.Join(f.Close(), os.Remove(name))
+}

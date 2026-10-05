@@ -1,0 +1,7 @@
+HTTP/1.1 429 Too Many Requests
+X-Fixture-Note: SYNTHETIC, global rate limit per Discord documentation (not observed live)
+content-type: application/json
+retry-after: 2
+x-ratelimit-global: true
+x-ratelimit-scope: global
+

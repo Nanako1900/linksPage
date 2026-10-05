@@ -1,0 +1,22 @@
+{{define "admin"}}<!doctype html>
+<html lang="{{.Lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{{.Title}}</title>
+{{- range .Styles}}
+<link rel="stylesheet" href="{{.}}">
+{{- end}}
+{{- range .Preloads}}
+<link rel="modulepreload" href="{{.}}">
+{{- end}}
+{{- if .Script}}
+<script type="module" src="{{.Script}}"></script>
+{{- end}}
+</head>
+<body>
+<div id="root"><noscript>{{.NoScript}}</noscript>{{if .Note}}<p>{{.Note}}</p>{{end}}</div>
+</body>
+</html>
+{{end}}

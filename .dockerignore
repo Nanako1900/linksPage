@@ -1,0 +1,25 @@
+# Keep the build context small and free of secrets.
+.git
+.github
+.omc
+.claude
+.env
+.env.*
+!.env.example
+secrets/
+backups/
+config/config.yaml
+docs/
+coverage/
+tmp/
+bin/
+dist/
+**/node_modules
+web/dist
+web/coverage
+# Rebuilt from web/ inside the image; keep the placeholder.
+internal/webui/dist/*
+!internal/webui/dist/.gitkeep
+*.test
+*.out
+**/.DS_Store

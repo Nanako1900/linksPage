@@ -1,0 +1,43 @@
+# LinksPage configuration. Copied to config/config.yaml by init.sh.
+# Precedence (low → high): built-in defaults → this file → LP_* environment
+# variables ("__" = nesting) → LP_*_FILE. Most values are set in .env and
+# compose.yaml; keep this file for settings that grant access.
+# Validate after editing:
+#   docker compose run --rm --no-deps app config check
+
+# base_url is normally set via LP_BASE_URL in .env.
+# base_url: https://links.example.com
+
+# log:
+#   level: info        # debug | info | warn | error
+#   format: json       # json | text
+
+# Send Strict-Transport-Security from the app (https base_url only). Leave
+# off behind Cloudflare, which sets HSTS at the edge.
+# hsts: false
+
+# Administrators are defined only here (the database never grants access).
+# Generate a hash with:
+#   docker compose run --rm --no-deps app hash-password      (available from M2a)
+# Plaintext `password` keys are rejected at startup.
+auth:
+  local:
+    enabled: true
+    users: []
+    # users:
+    #   - username: admin
+    #     password_hash: "$argon2id$v=19$m=47104,t=1,p=1$<salt>$<hash>"
+    #     role: owner      # owner | editor
+    #   - username: editor
+    #     password_hash_file: /run/secrets/admin_editor   # mount via compose.override.yaml
+    #     role: editor
+  # oauth:
+  #   providers:
+  #     - id: github
+  #       type: github
+  #       client_id: "..."
+  #       client_secret_file: /run/secrets/oauth_github
+  #   admins:
+  #     - provider: github
+  #       subject: "12345678"
+  #       role: owner

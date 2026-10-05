@@ -1,0 +1,62 @@
+{{define "public"}}<!doctype html>
+<html lang="{{.Lang}}" data-appearance="{{.Appearance}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{.Title}}</title>
+<meta name="description" content="{{.Description}}">
+{{- if .Robots}}
+<meta name="robots" content="{{.Robots}}">
+{{- end}}
+<link rel="canonical" href="{{.CanonicalURL}}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{.SiteName}}">
+<meta property="og:title" content="{{.Title}}">
+<meta property="og:description" content="{{.Description}}">
+<meta property="og:url" content="{{.CanonicalURL}}">
+<meta property="og:locale" content="{{.OGLocale}}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{.Title}}">
+<meta name="twitter:description" content="{{.Description}}">
+<meta name="theme-color" content="{{.ThemeColorLight}}" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="{{.ThemeColorDark}}" media="(prefers-color-scheme: dark)">
+<style id="lp-critical">{{.CriticalCSS}}</style>
+<style id="lp-theme">{{.ThemeCSS}}</style>
+<script>{{.BootScript}}</script>
+{{- range .Styles}}
+<link rel="stylesheet" href="{{.}}">
+{{- end}}
+{{- range .Preloads}}
+<link rel="modulepreload" href="{{.}}">
+{{- end}}
+{{- if .Script}}
+<script type="module" src="{{.Script}}"></script>
+{{- end}}
+</head>
+<body>
+<div id="root">{{template "fallback" .Fallback}}</div>
+{{- if .HasData}}
+<script id="lp-data" type="application/json">{{.Data}}</script>
+{{- end}}
+</body>
+</html>
+{{end}}
+
+{{define "fallback"}}<main class="lp-shell">
+{{- if .Code}}
+<p class="lp-code">{{.Code}}</p>
+{{- end}}
+<h1 class="lp-title">{{.Heading}}</h1>
+{{- if .Lede}}
+<p class="lp-lede">{{.Lede}}</p>
+{{- end}}
+{{- if .Note}}
+<p class="lp-note">{{.Note}}</p>
+{{- end}}
+{{- if .NoScript}}
+<noscript><p class="lp-note">{{.NoScript}}</p></noscript>
+{{- end}}
+{{- if .LinkText}}
+<a class="lp-link" href="/">{{.LinkText}}</a>
+{{- end}}
+</main>{{end}}
