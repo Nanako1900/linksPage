@@ -1,0 +1,78 @@
+# Deterministic E2E content. Provider data comes from the stub upstream
+# (e2e/stub), which serves internal/provider/*/testdata keyed by the IDs
+# below. Changing an ID here means changing e2e/stub/routes.mjs too.
+version: 1
+
+site:
+  default_locale: zh-CN
+  locales: [zh-CN, en]
+  title: { zh-CN: E2E 小屋, en: E2E Lodge }
+  description: { zh-CN: 端到端测试页面。, en: End-to-end test page. }
+  display_name: { zh-CN: E2E 小屋, en: E2E Lodge }
+  bio:
+    zh-CN: "测试用的**简介**，含一个[链接](https://example.com/notice)。"
+    en: "Test **bio** with a [link](https://example.com/notice)."
+  footer: { zh-CN: "页脚文字", en: "Footer text" }
+  show_powered_by: true
+  appearance: auto
+  search_indexing: noindex
+  not_found: { zh-CN: E2E：这个地址不存在。, en: "E2E: nothing here." }
+  copy:
+    zh-CN:
+      openInBrowser: 点右上角 ··· 选择「在浏览器打开」（E2E）
+
+communities:
+  # widget_ok + invite_ok → live
+  - slug: discord
+    platform: discord
+    name: { zh-CN: Discord 主服务器, en: Main Discord }
+    description: { zh-CN: 公告、组队和语音。, en: "News, squads and voice." }
+    guild_id: "1114391825336250432"
+    invite: https://discord.gg/KwdRuAkT
+    members: avatars_names
+    member_limit: 30
+    embed: true
+  # badge_public_style0/2 → live
+  - slug: kook
+    platform: kook
+    name: { zh-CN: KOOK 语音, en: KOOK voice }
+    guild_id: "5417470909511807"
+    invite: https://kook.top/E2eTest
+  # widget_disabled (50004) → static, join via the permanent invite fallback
+  - slug: discord-nowidget
+    platform: discord
+    name: { zh-CN: 未开启小部件的 Discord, en: Discord without widget }
+    guild_id: "662267976984297473"
+    fallback_url: https://discord.gg/E2eFallback
+  # widget_unknown_guild (10004) → unavailable
+  - slug: discord-gone
+    platform: discord
+    name: { zh-CN: 已解散的服务器, en: Deleted server }
+    guild_id: "100000000000000000"
+    unavailable_text: { zh-CN: 这个服务器已经关闭。, en: This server has closed. }
+  - slug: qq
+    platform: qq-group
+    name: { zh-CN: QQ 群, en: QQ group }
+    qq_group: "123456789"
+    invite: https://qm.qq.com/q/LinksPageE2E
+    qr: { image: images/qq-qr.png }
+  - slug: wechat
+    platform: wechat-group
+    name: { zh-CN: 微信群, en: WeChat group }
+    qr:
+      image: images/wechat-qr.png
+      note: { zh-CN: E2E 固定二维码, en: E2E fixed QR code }
+    contact:
+      label: { zh-CN: 二维码失效时加我, en: "QR expired? Add me" }
+      value: e2e_wechat_id
+
+links:
+  - slug: blog
+    label: { zh-CN: 博客, en: Blog }
+    url: https://blog.example.com
+    icon: builtin:link
+  - slug: github
+    kind: social
+    label: { en: GitHub }
+    url: https://github.com/Nanako1900/linksPage
+    icon: si:github

@@ -114,6 +114,9 @@ jobs:
           minor=$(printf '%s' "${TAG#v}" | cut -d. -f1-2)
           sed -i "s/^LINKSPAGE_TAG=.*/LINKSPAGE_TAG=$minor/" "$dir/.env.example"
           tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/release/linkspage-deploy-$TAG.tar.gz" "linkspage-deploy-$TAG"
+      - name: Checksums
+        working-directory: ${{ runner.temp }}/release
+        run: sha256sum web-dist.tar.gz linkspage-deploy-*.tar.gz > SHA256SUMS
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-assets
@@ -122,21 +125,33 @@ jobs:
           retention-days: 1
 
   # Publishes the assets: write token, but no checkout and no third-party code.
+  # The assets get a build provenance attestation (web-dist.tar.gz runs in
+  # every visitor's browser via the Worker); SHA256SUMS alone only detects
+  # transport corruption. Verify with `gh attestation verify`.
   publish:
     needs: [assets, images]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-assets
           path: release
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            release/web-dist.tar.gz
+            release/linkspage-deploy-${{ github.ref_name }}.tar.gz
+            release/SHA256SUMS
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: |
             release/web-dist.tar.gz
             release/linkspage-deploy-${{ github.ref_name }}.tar.gz
+            release/SHA256SUMS
 
   anonymous-pull:
     needs: images

@@ -49,6 +49,14 @@
     },
     {
       "matchPackageNames": [
+        "@playwright/test",
+        "mcr.microsoft.com/playwright"
+      ],
+      "groupName": "playwright",
+      "description": "e2e/Dockerfile's image tag must match @playwright/test in e2e/package.json"
+    },
+    {
+      "matchPackageNames": [
         "postgres"
       ],
       "matchUpdateTypes": [

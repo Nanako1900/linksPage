@@ -23,3 +23,8 @@ internal/webui/dist/*
 *.test
 *.out
 **/.DS_Store
+# Test suites and the edge Worker are not part of the image.
+e2e/
+deploy/cloudflare-worker/
+**/playwright-report
+**/test-results
