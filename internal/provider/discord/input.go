@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/Nanako1900/linksPage/internal/provider"
 )
 
 // APIHost is the Discord REST host.
@@ -80,4 +82,20 @@ func InviteURL(code string) (string, error) {
 		RawQuery: url.Values{"with_counts": {"true"}}.Encode(),
 	}
 	return u.String(), nil
+}
+
+// WidgetURLAt builds the widget.json endpoint under base (api_base).
+func WidgetURLAt(base *url.URL, guildID string) (string, error) {
+	if !ValidGuildID(guildID) {
+		return "", ErrInvalidInput
+	}
+	return provider.EndpointURL(base, "/api/guilds/"+guildID+"/widget.json", nil), nil
+}
+
+// InviteURLAt builds the invite lookup endpoint (with counts) under base.
+func InviteURLAt(base *url.URL, code string) (string, error) {
+	if !inviteCodeRE.MatchString(code) {
+		return "", ErrInvalidInput
+	}
+	return provider.EndpointURL(base, "/api/v10/invites/"+code, url.Values{"with_counts": {"true"}}), nil
 }

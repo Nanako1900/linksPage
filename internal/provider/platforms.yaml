@@ -1,0 +1,80 @@
+# Platform presets embedded in the binary (doc 5.5). Schema: see
+# docs/m1/contract.md. Contributors may add platforms by PR.
+# Icons: "si:<simple-icons slug>" (verify against simple-icons 16.x) or
+# "builtin:<name>" (icons shipped by the frontend).
+version: 1
+platforms:
+  - id: discord
+    name: { en: Discord, zh-CN: Discord }
+    icon: si:discord
+    provider: discord
+    card: discord
+    url_pattern: '^https://(discord\.gg/|(www\.)?discord\.com/invite/)[A-Za-z0-9-]{2,32}$'
+    needs_external_browser: true
+  - id: kook
+    name: { en: KOOK, zh-CN: KOOK }
+    icon: builtin:kook
+    provider: kook
+    card: kook
+    url_pattern: '^https://(kook\.top|(www\.)?kookapp\.cn/app/invite)/[A-Za-z0-9]{2,32}$'
+    needs_external_browser: false
+  - id: telegram
+    name: { en: Telegram, zh-CN: Telegram }
+    icon: si:telegram
+    card: static
+    url_pattern: '^https://t\.me/[A-Za-z0-9_+/-]{1,64}$'
+    needs_external_browser: true
+  - id: qq-group
+    name: { en: QQ Group, zh-CN: QQ 群 }
+    icon: si:qq
+    card: qq-group
+    url_pattern: '^https://(qm\.qq\.com|qun\.qq\.com)/'
+    needs_external_browser: false
+  - id: qq-channel
+    name: { en: QQ Channel, zh-CN: QQ 频道 }
+    icon: si:qq
+    card: static
+    url_pattern: '^https://pd\.qq\.com/'
+    needs_external_browser: false
+  - id: wechat-group
+    name: { en: WeChat Group, zh-CN: 微信群 }
+    icon: si:wechat
+    card: wechat-group
+    url_pattern: ''
+    needs_external_browser: false
+  - id: bilibili
+    name: { en: Bilibili, zh-CN: 哔哩哔哩 }
+    icon: si:bilibili
+    card: static
+    url_pattern: '^https://(space\.|www\.)?bilibili\.com/'
+    needs_external_browser: false
+  - id: steam-group
+    name: { en: Steam Group, zh-CN: Steam 组 }
+    icon: si:steam
+    card: static
+    url_pattern: '^https://steamcommunity\.com/groups/'
+    needs_external_browser: false
+  - id: teamspeak
+    name: { en: TeamSpeak, zh-CN: TeamSpeak }
+    icon: si:teamspeak
+    card: static
+    url_pattern: '^https://'
+    needs_external_browser: false
+  - id: matrix
+    name: { en: Matrix, zh-CN: Matrix }
+    icon: si:matrix
+    card: static
+    url_pattern: '^https://matrix\.to/#/'
+    needs_external_browser: true
+  - id: revolt
+    name: { en: Revolt, zh-CN: Revolt }
+    icon: builtin:revolt
+    card: static
+    url_pattern: '^https://(rvlt\.gg|app\.revolt\.chat/invite)/'
+    needs_external_browser: true
+  - id: link
+    name: { en: Link, zh-CN: 链接 }
+    icon: builtin:link
+    card: static
+    url_pattern: ''
+    needs_external_browser: false
