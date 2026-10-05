@@ -55,6 +55,7 @@ func (c *Config) Validate() ([]string, error) {
 		errs = append(errs, errors.New("analytics.timezone: unknown time zone"))
 	}
 	errs = append(errs, validateLog(c.Log)...)
+	errs = append(errs, validateM1(c)...)
 
 	authWarns, authErrs := validateAuth(c.Auth)
 	warns = append(warns, authWarns...)

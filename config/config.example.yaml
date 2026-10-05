@@ -16,6 +16,28 @@
 # off behind Cloudflare, which sets HSTS at the edge.
 # hsts: false
 
+# Initial content imported on first start when the page has no content
+# yet (see config/seed.example.yaml; image paths are relative to the seed
+# file's directory). Remove or keep it: later starts skip seeding.
+# seed_file: /etc/linkspage/seed.yaml
+
+# Image uploads (bytes; 64 KiB – 20 MiB).
+# uploads:
+#   max_bytes: 5242880
+
+# Upstream API origins. Only change these for tests or mirrors.
+# providers:
+#   http_proxy: http://host.docker.internal:7890   # usually LP_PROVIDERS__HTTP_PROXY
+#   discord:
+#     api_base: https://discord.com
+#   kook:
+#     api_base: https://www.kookapp.cn
+
+# Topology C (Cloudflare Worker front end): shared secret the Worker sends
+# as X-LP-Proxy-Auth (≥32 bytes). Prefer LP_EDGE__PROXY_AUTH_FILE.
+# edge:
+#   proxy_auth_file: /run/secrets/edge_proxy_auth
+
 # Administrators are defined only here (the database never grants access).
 # Generate a hash with:
 #   docker compose run --rm --no-deps app hash-password      (available from M2a)
