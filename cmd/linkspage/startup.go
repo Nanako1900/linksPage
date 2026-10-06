@@ -25,6 +25,8 @@ const (
 	// context: a long migration or a wait on the advisory lock held by
 	// another instance must be allowed to finish.
 	startupProbeTimeout = 30 * time.Second
+	// startupSeedTimeout bounds the seed import (image processing included).
+	startupSeedTimeout = 2 * time.Minute
 	// startupErrorAfter is the number of consecutive failures after which
 	// retries are logged at ERROR instead of WARN.
 	startupErrorAfter = 5
@@ -36,10 +38,12 @@ var errFatalStartup = errors.New("fatal startup error")
 // startupSteps are the I/O operations performed during startup. They are
 // functions so tests can drive startup without a database.
 type startupSteps struct {
-	ping         func(context.Context) error
-	checkServer  func(context.Context) error
-	migrate      func(context.Context) error
-	checkCompat  func(context.Context) error
+	ping        func(context.Context) error
+	checkServer func(context.Context) error
+	migrate     func(context.Context) error
+	checkCompat func(context.Context) error
+	// importSeed imports the configured seed file; nil when none is set.
+	importSeed   func(context.Context) error
 	loadSnapshot func(context.Context) (*site.Snapshot, error)
 }
 
@@ -55,12 +59,16 @@ type startupRunner struct {
 	minBackoff   time.Duration
 	maxBackoff   time.Duration
 	probeTimeout time.Duration
+	seedTimeout  time.Duration
+	// onReady runs once after the instance became ready (starts jobs).
+	onReady func()
 }
 
 func newStartupRunner(steps startupSteps, holder *site.Holder, ready *httpapi.Readiness, logger *slog.Logger) startupRunner {
 	return startupRunner{
 		steps: steps, holder: holder, ready: ready, logger: logger,
 		minBackoff: startupMinBackoff, maxBackoff: startupMaxBackoff, probeTimeout: startupProbeTimeout,
+		seedTimeout: startupSeedTimeout,
 	}
 }
 
@@ -77,6 +85,9 @@ func (s startupRunner) run(ctx context.Context, fail context.CancelCauseFunc) {
 			s.holder.Set(snap)
 			s.ready.SetReady()
 			s.logger.Info("ready")
+			if s.onReady != nil {
+				s.onReady()
+			}
 			return
 		}
 		if errors.Is(err, errFatalStartup) {
@@ -111,6 +122,14 @@ func (s startupRunner) once(ctx context.Context) (*site.Snapshot, error) {
 	if err := s.probe(ctx, s.steps.checkCompat); err != nil {
 		return nil, fatalIf(err, store.ErrIncompatibleApp)
 	}
+	if s.steps.importSeed != nil {
+		seedCtx, cancel := context.WithTimeout(ctx, s.seedTimeout)
+		err := s.steps.importSeed(seedCtx)
+		cancel()
+		if err != nil {
+			return nil, err
+		}
+	}
 	var snap *site.Snapshot
 	err := s.probe(ctx, func(ctx context.Context) error {
 		var err error
@@ -143,8 +162,9 @@ type migrator interface {
 	Close() error
 }
 
-// dbStartupSteps wires the startup steps to PostgreSQL.
-func dbStartupSteps(cfg *config.Config, pool *pgxpool.Pool, logger *slog.Logger) startupSteps {
+// dbStartupSteps wires the startup steps to PostgreSQL: migrations, the
+// optional seed import and the first page build.
+func dbStartupSteps(cfg *config.Config, pool *pgxpool.Pool, logger *slog.Logger, a *app, holder *site.Holder) startupSteps {
 	q := dbq.New(pool)
 	open := func() (migrator, error) { return store.NewMigrator(pool, logger) }
 	return startupSteps{
@@ -152,7 +172,8 @@ func dbStartupSteps(cfg *config.Config, pool *pgxpool.Pool, logger *slog.Logger)
 		checkServer:  func(ctx context.Context) error { return store.CheckServerVersion(ctx, pool) },
 		migrate:      func(ctx context.Context) error { return migrateOrCheck(ctx, cfg.DB.AutoMigrate, open) },
 		checkCompat:  func(ctx context.Context) error { return store.CheckAppCompatibility(ctx, q, version) },
-		loadSnapshot: func(ctx context.Context) (*site.Snapshot, error) { return site.LoadSnapshot(ctx, q, logger) },
+		importSeed:   a.importSeed(cfg),
+		loadSnapshot: a.loadSnapshot(holder),
 	}
 }
 

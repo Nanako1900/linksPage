@@ -1,0 +1,90 @@
+{{define "fallback"}}<div class="lp-fb"><main class="lp-shell">
+{{- if .Code}}
+<p class="lp-code">{{.Code}}</p>
+{{- end}}
+{{- with .Identity}}
+<header class="lp-id">
+{{- with .Avatar}}
+<img class="lp-avatar" src="{{.URL}}" width="{{.Width}}" height="{{.Height}}" alt="">
+{{- end}}
+<h1 class="lp-title">{{.Name}}</h1>
+{{- if .Bio}}
+<div class="lp-md lp-lede">{{.Bio}}</div>
+{{- end}}
+</header>
+{{- else}}
+<h1 class="lp-title">{{.Heading}}</h1>
+{{- if .Lede}}
+<p class="lp-lede">{{.Lede}}</p>
+{{- end}}
+{{- end}}
+{{- if .Note}}
+<p class="lp-note">{{.Note}}</p>
+{{- end}}
+{{- with .Pinned}}
+<section class="lp-pinned" aria-label="{{$.PinnedLabel}}">{{template "card" .}}</section>
+{{- end}}
+{{- range .Blocks}}
+{{template "block" .}}
+{{- end}}
+{{- if .NoScript}}
+<noscript><p class="lp-note">{{.NoScript}}</p></noscript>
+{{- end}}
+{{- if .LinkText}}
+<a class="lp-link" href="{{.LinkHref}}">{{.LinkText}}</a>
+{{- end}}
+</main>
+{{- if or .Footer .PoweredBy}}
+<footer class="lp-shell lp-foot">
+{{- if .Footer}}
+<div class="lp-md">{{.Footer}}</div>
+{{- end}}
+{{- if .PoweredBy}}
+<p><a href="{{.PoweredByURL}}" rel="noopener">{{.PoweredBy}}</a></p>
+{{- end}}
+</footer>
+{{- end}}</div>{{end}}
+
+{{define "block"}}
+{{- if .Heading}}<h2 class="lp-h">{{.Heading}}{{if .Count}} <span class="lp-count">— {{.Count}}</span>{{end}}</h2>
+{{- else if .Markdown}}<div class="lp-md">{{.Markdown}}</div>
+{{- else if .Link}}<a class="lp-row" href="{{.Link.Href}}"{{if .Link.Rel}} rel="{{.Link.Rel}}"{{end}}>{{.Link.Label}} <span aria-hidden="true">→</span></a>
+{{- else if .Social}}<ul class="lp-social">{{range .Social}}<li><a href="{{.Href}}"{{if .Rel}} rel="{{.Rel}}"{{end}}>{{.Label}}</a></li>{{end}}</ul>
+{{- else if .Card}}{{template "card" .Card}}
+{{- end}}
+{{- end}}
+
+{{define "card"}}<article class="lp-card" data-state="{{.State}}" data-card="{{.Card}}">
+<div class="lp-card-head">
+{{- with .Icon}}<img class="lp-icon" src="{{.URL}}" width="{{.Width}}" height="{{.Height}}" alt="">{{end}}
+<h3 class="lp-name">{{.Name}}{{if .Platform}} <span class="lp-tag">{{.Platform}}</span>{{end}}</h3>
+</div>
+{{- if .Description}}
+<p class="lp-desc">{{.Description}}</p>
+{{- end}}
+{{- if .Stat}}
+<p class="lp-stat">{{.Stat}}{{if .Updated}} · <time datetime="{{.UpdatedISO}}">{{.Updated}}</time>{{end}}</p>
+{{- end}}
+{{- if .Channels}}
+<ul class="lp-chips">{{range .Channels}}<li>#{{.}}</li>{{end}}</ul>
+{{- end}}
+{{- if .Users}}
+<p class="lp-desc">{{.Users}}</p>
+{{- end}}
+{{- if .QQNumber}}
+<p class="lp-qq">{{.QQLabel}} <strong class="lp-mono">{{.QQNumber}}</strong></p>
+{{- end}}
+{{- with .QR}}
+<figure class="lp-qr"><img src="{{.URL}}" width="{{.Width}}" height="{{.Height}}" alt="{{.Alt}}" loading="lazy">
+{{- if or .Hint .Note}}<figcaption>{{.Hint}}{{if and .Hint .Note}} · {{end}}{{.Note}}</figcaption>{{end}}</figure>
+{{- end}}
+{{- with .Contact}}
+<p class="lp-desc">{{.Label}} <strong class="lp-mono">{{.Value}}</strong></p>
+{{- end}}
+{{- if .Notice}}
+<p class="lp-notice">{{.Notice}}</p>
+{{- end}}
+{{- if .JoinURL}}
+<a class="lp-btn" href="{{.JoinURL}}">{{.JoinText}}</a>
+{{- end}}
+</article>{{end}}

@@ -1,7 +1,7 @@
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LANG_STORAGE_KEY } from "../shared/localized";
-import { sampleBootstrap } from "../test/fixtures";
+import { samplePage } from "../test/fixtures";
 import { localeFor, rememberLocaleChoice, start } from "./start";
 
 function embed(json: string) {
@@ -12,7 +12,7 @@ function embed(json: string) {
   document.body.append(el);
 }
 
-const loc = (search: string) => ({ search }) as Location;
+const loc = (search: string) => ({ search });
 
 describe("start", () => {
   let root: HTMLElement;
@@ -31,19 +31,27 @@ describe("start", () => {
   });
 
   it("replaces the fallback markup with the app and remembers ?lang", async () => {
-    embed(JSON.stringify({ data: sampleBootstrap() }));
+    embed(JSON.stringify({ data: samplePage() }));
     await act(() => start(root));
-    expect(root.querySelector("h1")?.textContent).toBe("My Communities");
+    expect(root.querySelector("h1")?.textContent).toBe("Hunter's Lodge");
     expect(root.querySelector(".lp-shell")).toBeNull();
+    expect(root.querySelectorAll("article")).toHaveLength(8);
     expect(document.documentElement.lang).toBe("en");
     expect(window.localStorage.getItem(LANG_STORAGE_KEY)).toBe("en");
   });
 
   it("keeps the document title in the resolved locale", async () => {
-    document.title = "我的社区";
-    embed(JSON.stringify({ data: sampleBootstrap() }));
+    document.title = "猎人小屋";
+    embed(JSON.stringify({ data: samplePage() }));
     await act(() => start(root));
-    expect(document.title).toBe("My Communities");
+    expect(document.title).toBe("Hunter's Lodge");
+  });
+
+  it("routes /c/{slug} from the location", async () => {
+    window.history.replaceState(null, "", "/c/kook");
+    embed(JSON.stringify({ data: samplePage() }));
+    await act(() => start(root));
+    expect(root.querySelector("section h2")?.textContent).toBe("Shared with you");
   });
 
   it("reports the failure and keeps the server fallback when bootstrap cannot be loaded", async () => {
@@ -68,15 +76,15 @@ describe("start", () => {
 });
 
 describe("localeFor", () => {
-  it("reads ?lang and falls back to the default locale list", () => {
-    const data = { ...sampleBootstrap(), site: { ...sampleBootstrap().site, locales: null } };
+  it("reads ?lang and falls back to the default locale when none are enabled", () => {
+    const data = { ...samplePage(), site: { ...samplePage().site, locales: [] } };
     expect(localeFor(data, loc("?lang=en"), { languages: [] })).toBe("zh-CN");
-    expect(localeFor(sampleBootstrap(), loc("?lang=en"), { languages: [] })).toBe("en");
+    expect(localeFor(samplePage(), loc("?lang=en"), { languages: [] })).toBe("en");
   });
 
   it("prefers the stored choice over browser languages", () => {
     window.localStorage.setItem(LANG_STORAGE_KEY, "en");
-    expect(localeFor(sampleBootstrap(), loc(""), { languages: ["zh-CN"] })).toBe("en");
+    expect(localeFor(samplePage(), loc(""), { languages: ["zh-CN"] })).toBe("en");
     window.localStorage.clear();
   });
 
@@ -84,7 +92,7 @@ describe("localeFor", () => {
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("denied");
     });
-    expect(localeFor(sampleBootstrap(), loc(""), { languages: ["en-US"] })).toBe("en");
+    expect(localeFor(samplePage(), loc(""), { languages: ["en-US"] })).toBe("en");
   });
 });
 
@@ -92,11 +100,11 @@ describe("rememberLocaleChoice", () => {
   afterEach(() => window.localStorage.clear());
 
   it("stores only enabled locales from ?lang", () => {
-    rememberLocaleChoice(sampleBootstrap(), loc("?lang=fr"));
+    rememberLocaleChoice(samplePage(), loc("?lang=fr"));
     expect(window.localStorage.getItem(LANG_STORAGE_KEY)).toBeNull();
-    rememberLocaleChoice(sampleBootstrap(), loc(""));
+    rememberLocaleChoice(samplePage(), loc(""));
     expect(window.localStorage.getItem(LANG_STORAGE_KEY)).toBeNull();
-    rememberLocaleChoice(sampleBootstrap(), loc("?lang=zh-CN"));
+    rememberLocaleChoice(samplePage(), loc("?lang=zh-CN"));
     expect(window.localStorage.getItem(LANG_STORAGE_KEY)).toBe("zh-CN");
   });
 
@@ -104,6 +112,6 @@ describe("rememberLocaleChoice", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("quota");
     });
-    expect(() => rememberLocaleChoice(sampleBootstrap(), loc("?lang=en"))).not.toThrow();
+    expect(() => rememberLocaleChoice(samplePage(), loc("?lang=en"))).not.toThrow();
   });
 });

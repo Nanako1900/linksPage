@@ -89,15 +89,93 @@ jobs:
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint:ci
+      - name: CSS browser compatibility (sources and Go stylesheets)
+        run: pnpm lint:css
+      - run: pnpm test:lint-rules
       - run: pnpm typecheck
       - run: pnpm test:coverage
       - run: pnpm build
       - run: pnpm size
+      - name: CSS browser compatibility (built public CSS)
+        run: pnpm lint:css:dist
       - name: orval drift
         run: |
           pnpm gen:api
           git diff --exit-code -- src/shared/api/gen
           test -z "$(git status --porcelain -- src/shared/api/gen)"
+
+  worker:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: deploy/cloudflare-worker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint:ci
+      - run: pnpm typecheck
+      - run: pnpm test:coverage
+      - name: deploy dry-run
+        # web/dist is built by the web job; placeholders are enough here.
+        # The Vite manifest and the admin shell must never reach the edge
+        # (web/public/.assetsignore, copied into dist by Vite).
+        env:
+          WRANGLER_LOG: debug
+        run: |
+          mkdir -p ../../web/dist/.vite ../../web/dist/admin
+          cp ../../web/public/.assetsignore ../../web/dist/
+          echo '{}' > ../../web/dist/.vite/manifest.json
+          echo '<!doctype html>' > ../../web/dist/admin/index.html
+          pnpm check:deploy 2>&1 | tee "$RUNNER_TEMP/dry-run.log"
+          grep -q 'Ignoring asset: .vite/manifest.json' "$RUNNER_TEMP/dry-run.log"
+          grep -q 'Ignoring asset: admin/index.html' "$RUNNER_TEMP/dry-run.log"
+
+  # Playwright + axe against an offline compose stack (db, stub upstream,
+  # app image); see e2e/run.sh. The runner image is the Playwright image
+  # plus fonts-noto-cjk (e2e/Dockerfile).
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - name: Lint, typecheck and stub tests
+        working-directory: e2e
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint:ci
+          pnpm typecheck
+          pnpm test:stub
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build app image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          tags: linkspage:e2e
+          cache-from: type=gha
+      - name: Playwright E2E (offline stack)
+        run: e2e/run.sh
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
 
   compose:
     runs-on: ubuntu-24.04
@@ -115,7 +193,9 @@ jobs:
           chmod +x /tmp/docker-compose
           deploy/ci/compose-check.sh /tmp/docker-compose
       - name: shellcheck
-        run: shellcheck deploy/init.sh deploy/backup/backup.sh deploy/ci/*.sh
+        run: shellcheck deploy/init.sh deploy/backup/backup.sh deploy/ci/*.sh e2e/run.sh
+      - name: E2E compose config
+        run: docker compose -f e2e/compose.yaml config --quiet
 
   docker:
     runs-on: ubuntu-24.04

@@ -12,11 +12,25 @@ function closure(key, seen = new Set()) {
   return seen;
 }
 
-const chunks = [...closure("index.html")].map((k) => manifest[k]);
+// Lazy chunks of the public entry (brand icons, QR encoder) and what
+// they import, minus what the initial load already has.
+function lazyClosure(initial) {
+  const lazy = new Set();
+  for (const key of initial) {
+    for (const dyn of manifest[key]?.dynamicImports ?? []) closure(dyn, lazy);
+  }
+  return [...lazy].filter((k) => !initial.has(k));
+}
+
+const initial = closure("index.html");
+const chunks = [...initial].map((k) => manifest[k]);
 const js = chunks.map((c) => `dist/${c.file}`);
 const css = chunks.flatMap((c) => c.css ?? []).map((f) => `dist/${f}`);
+const lazyJs = lazyClosure(initial).map((k) => `dist/${manifest[k].file}`);
 
 export default [
   { name: "public JS (gzip)", path: js, limit: "90 kB", gzip: true },
   { name: "public CSS (gzip)", path: css, limit: "15 kB", gzip: true },
+  // Not in doc 8.1: keeps the on-demand chunks from growing unnoticed.
+  { name: "public JS incl. lazy chunks (gzip)", path: [...js, ...lazyJs], limit: "110 kB", gzip: true },
 ];

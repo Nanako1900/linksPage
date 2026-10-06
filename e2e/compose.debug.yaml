@@ -1,0 +1,14 @@
+# Local debugging only: publishes the app on 127.0.0.1:8080 and the stub on
+# 127.0.0.1:8090 so Playwright can run on the host (`pnpm test`, `--ui`).
+# This adds a non-internal network, so the stack is no longer offline;
+# CI never uses this file.
+#   docker compose -f e2e/compose.yaml -f e2e/compose.debug.yaml up -d app
+services:
+  app:
+    networks: [e2e, debug]
+    ports: ["127.0.0.1:8080:8080"]
+  stub:
+    networks: [e2e, debug]
+    ports: ["127.0.0.1:8090:8090"]
+networks:
+  debug: {}

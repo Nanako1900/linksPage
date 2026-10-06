@@ -1,5 +1,117 @@
-# Initial content imported on first start (seed_file, milestone M1).
-# Image paths are relative to the config/ directory.
-# site:
-#   title: { zh-CN: 我的社区, en: My Communities }
-#   description: { zh-CN: 加入我们的社区。, en: Join our communities. }
+# LinksPage 初始内容（结构见 docs/m1/contract.md 第 10 节）。
+#
+# 用法：在 config.yaml 里设置 `seed_file: /etc/linkspage/seed.yaml`（或环境变量
+# LP_SEED_FILE）。只有在页面还没有任何块、社区和链接时才会导入，之后的启动
+# 会直接跳过这个文件，所以首次导入后请到管理后台修改内容。
+#
+# 规则：
+# - 未知的键会报错，错误信息会给出 YAML 路径（例如 communities[2].guild_id）。
+# - 图片路径相对于本文件所在目录，不能越出该目录；支持 png / jpg / webp（不支持 SVG）。
+# - 服务器 ID、QQ 群号必须加引号，否则 YAML 会把它们当成数字。
+# - 多语言文本写成 { zh-CN: …, en: … }；bio、footer 和 text 块支持 Markdown 子集
+#   （段落、换行、强调、加粗、删除线、行内代码、链接、列表、引用；不支持 HTML、图片、标题）。
+version: 1
+
+site:
+  default_locale: zh-CN
+  locales: [zh-CN, en]
+  title: { zh-CN: 猎人小屋, en: Hunter's Lodge }
+  description:
+    zh-CN: 加入我们的 Discord、KOOK、QQ 群和微信群。
+    en: "Join our Discord, KOOK, QQ and WeChat communities."
+  display_name: { zh-CN: 猎人小屋, en: Hunter's Lodge }
+  bio:
+    zh-CN: "欢迎来玩！**周五晚上**一起开黑，新人请先看 [公告](https://github.com/Nanako1900/linksPage)。"
+    en: "Welcome! Game night is **Friday** — newcomers please read the [notice](https://github.com/Nanako1900/linksPage) first."
+  # avatar: images/avatar.png           # 头像，建议正方形 ≥ 256px
+  footer:
+    zh-CN: "联系：[邮件](mailto:hi@example.com)"
+    en: "Contact: [email](mailto:hi@example.com)"
+  show_powered_by: true
+  appearance: auto                      # light | dark | auto | visitor-choice
+  search_indexing: index                # index | noindex（同时影响 robots.txt）
+  not_found: { zh-CN: 这个地址不存在。, en: Nothing here. }
+  # og:                                 # 链接预览；不填时使用标题、描述和自动生成的图片
+  #   title: { zh-CN: 猎人小屋 }
+  #   description: { zh-CN: 一起来玩 }
+  #   image: images/og.jpg              # 1200×630
+  copy:                                 # 覆盖内置引导文案（可选）
+    zh-CN:
+      openInBrowser: 点右上角 ··· 选择「在浏览器打开」，就能加入 Discord 了
+
+# 自定义平台（可选）。预设平台见 internal/provider/platforms.yaml。
+# platforms:
+#   - id: heybox
+#     name: { zh-CN: 黑盒语音, en: Heybox }
+#     icon: builtin:link                # si:<simple-icons slug> | builtin:<name> | images/x.png
+#     url_pattern: '^https://'
+#     needs_external_browser: false
+
+communities:
+  - slug: discord
+    platform: discord
+    name: { zh-CN: Discord 主服务器, en: Main Discord }
+    description: { zh-CN: 公告、组队和语音。, en: "News, squads and voice." }
+    guild_id: "1114391825336250432"     # 服务器设置 → 小部件（Widget）必须开启
+    invite: https://discord.gg/YourInvite  # 换成你的永久邀请（永不过期、不限次数）
+    members: avatars_names               # hidden | avatars | avatars_names
+    name_blocklist: [spam]               # 昵称包含这些词的成员不显示
+    member_limit: 30                     # 最多 100
+    embed: false                         # 点击后才加载的 Discord iframe
+  - slug: kook
+    platform: kook
+    name: { zh-CN: KOOK 语音, en: KOOK voice }
+    description: { zh-CN: 「猎杀对决」中文玩家社区（公开测试服务器）。, en: Public test server. }
+    guild_id: "5417470909511807"         # 服务器必须设为公开
+    invite: https://kook.top/AbCdEf      # 换成你自己的邀请链接
+    # icon: images/kook.png              # 没有 Bot Token 时 KOOK 不提供图标，可以自己上传
+    refresh_interval: 10m                # 不低于 5 分钟
+  - slug: qq
+    platform: qq-group
+    name: { zh-CN: QQ 群, en: QQ group }
+    qq_group: "123456789"                # 换成你的群号
+    # invite: https://qm.qq.com/q/AbCdEf # 可选：QQ 官方加群链接
+    # qr: { image: images/qq-qr.png }    # 可选：加群二维码
+  - slug: wechat
+    platform: wechat-group
+    name: { zh-CN: 微信群, en: WeChat group }
+    qr:
+      image: images/wechat-qr.png        # 微信群二维码 7 天过期，过期后请替换
+      note: { zh-CN: 更新于 10-05，7 天内有效, en: "Updated 10-05, valid for 7 days" }
+    contact:
+      label: { zh-CN: 群满或二维码失效时，加我拉你进群, en: "Group full or QR expired? Add me" }
+      value: my_wechat_id
+
+links:
+  - slug: blog
+    label: { zh-CN: 博客, en: Blog }
+    url: https://blog.example.com
+    icon: builtin:link
+  - slug: github
+    kind: social
+    label: { en: GitHub }
+    url: https://github.com/Nanako1900/linksPage
+    icon: si:github
+  - slug: bilibili
+    kind: social
+    label: { zh-CN: 哔哩哔哩, en: Bilibili }
+    url: https://space.bilibili.com/1
+    icon: si:bilibili
+
+# 省略 blocks 时使用默认布局：「社区 / Communities」标题（带数量）→ 全部社区 →
+# kind: link 的链接 → 一行 kind: social 的图标。下面是显式布局：
+blocks:
+  - heading: { zh-CN: 社区, en: Communities }
+    show_count: true
+  - community: discord
+  - community: kook
+  - community: qq
+  - community: wechat
+  - heading: { zh-CN: 链接, en: Links }
+  - link: blog
+  - text:
+      zh-CN: "活动日历见 [博客](https://blog.example.com)。"
+      en: "See the [blog](https://blog.example.com) for events."
+  - social_row: [github, bilibili]
+  # 定时显示：visible_from / visible_to 是带时区的时间
+  # - { community: kook, visible_from: 2026-10-10T00:00:00+08:00, visible_to: 2026-10-17T00:00:00+08:00 }

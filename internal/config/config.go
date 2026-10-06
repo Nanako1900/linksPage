@@ -16,6 +16,16 @@ const (
 	DefaultConfigFile = "/etc/linkspage/config.yaml"
 )
 
+// M1 defaults.
+const (
+	DefaultDiscordAPIBase = "https://discord.com"
+	DefaultKOOKAPIBase    = "https://www.kookapp.cn"
+	DefaultUploadMaxBytes = 5 << 20
+	MinUploadMaxBytes     = 64 << 10
+	MaxUploadMaxBytes     = 20 << 20
+	MinProxyAuthBytes     = 32
+)
+
 // Role is an administrator role.
 type Role string
 
@@ -38,6 +48,12 @@ type Config struct {
 	Providers      Providers `koanf:"providers" json:"providers"`
 	Analytics      Analytics `koanf:"analytics" json:"analytics"`
 	Log            Log       `koanf:"log" json:"log"`
+	// SeedFile is a seed.yaml imported on first start when the content
+	// tables are empty ("" disables seeding). Image paths inside it are
+	// relative to its directory.
+	SeedFile string  `koanf:"seed_file" json:"seed_file,omitempty"`
+	Uploads  Uploads `koanf:"uploads" json:"uploads"`
+	Edge     Edge    `koanf:"edge" json:"edge"`
 	// HSTS makes the application send Strict-Transport-Security itself.
 	// Only for https deployments that do not sit behind Cloudflare (which
 	// sets HSTS at the edge).
@@ -65,7 +81,28 @@ type DB struct {
 
 // Providers holds outbound settings for community providers.
 type Providers struct {
-	HTTPProxy ProxyURL `koanf:"http_proxy" json:"http_proxy,omitempty"`
+	HTTPProxy ProxyURL    `koanf:"http_proxy" json:"http_proxy,omitempty"`
+	Discord   ProviderAPI `koanf:"discord" json:"discord"`
+	KOOK      ProviderAPI `koanf:"kook" json:"kook"`
+}
+
+// ProviderAPI overrides a provider's upstream API origin. Only meant for
+// tests and mirrors; set via the config file or LP_PROVIDERS__*__API_BASE.
+type ProviderAPI struct {
+	APIBase string `koanf:"api_base" json:"api_base"`
+}
+
+// Uploads holds image upload limits.
+type Uploads struct {
+	MaxBytes int64 `koanf:"max_bytes" json:"max_bytes"`
+}
+
+// Edge holds topology C (Cloudflare Worker front end) settings.
+type Edge struct {
+	// ProxyAuth is the shared secret the Worker sends as X-LP-Proxy-Auth
+	// (doc 12.3). Optional; when set, /api/v1/public/render requires it.
+	ProxyAuth     Secret `koanf:"proxy_auth" json:"proxy_auth"`
+	ProxyAuthFile string `koanf:"proxy_auth_file" json:"proxy_auth_file,omitempty"`
 }
 
 // Analytics holds analytics settings.
@@ -153,6 +190,9 @@ func defaults() map[string]any {
 		"log.level":                     "info",
 		"log.format":                    "json",
 		"hsts":                          false,
+		"providers.discord.api_base":    DefaultDiscordAPIBase,
+		"providers.kook.api_base":       DefaultKOOKAPIBase,
+		"uploads.max_bytes":             DefaultUploadMaxBytes,
 		"auth.local.enabled":            true,
 		"auth.session.idle_timeout":     "24h",
 		"auth.session.absolute_timeout": "168h",

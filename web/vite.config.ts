@@ -75,10 +75,17 @@ export default defineConfig({
     restoreMocks: true,
     unstubGlobals: true,
     include: ["src/**/*.test.{ts,tsx}"],
+    setupFiles: ["src/test/setup.ts"],
     coverage: {
       provider: "v8",
       include: ["src/shared/**", "src/public/**"],
-      exclude: ["src/shared/api/gen/**", "src/**/*.test.{ts,tsx}", "src/public/main.tsx"],
+      exclude: [
+        "src/shared/api/gen/**",
+        "src/**/*.test.{ts,tsx}",
+        "src/public/main.tsx",
+        // Data-only module: brand icon paths re-exported from simple-icons.
+        "src/public/components/icons/simpleIcons.ts",
+      ],
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
     },
   },

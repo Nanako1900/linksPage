@@ -1,33 +1,33 @@
-import type { Bootstrap } from "../shared/bootstrap";
+import type { CommunityView, LiveView, PublicPage } from "../shared/types/public";
+import fixture from "./fixtures/public-page.json";
 
-const palette = {
-  bg: "#f9f7f1",
-  fg: "#1a1c22",
-  muted: "#5f6270",
-  card: "#ffffff",
-  border: "#e4e1d8",
-  accent: "#5b4ad8",
-  accentFg: "#ffffff",
-};
-
-export function sampleBootstrap(): Bootstrap {
-  return {
-    version: 3,
-    page: { id: 1, slug: "default" },
-    site: {
-      defaultLocale: "zh-CN",
-      locales: ["zh-CN", "en"],
-      title: { "zh-CN": "我的社区", en: "My Communities" },
-      description: { "zh-CN": "加入我们的社区。", en: "Join our communities." },
-      appearance: "auto",
-      theme: {
-        preset: "signal-paper",
-        light: palette,
-        dark: palette,
-        radius: "0.75rem",
-        fontSans: "system",
-        fontDisplay: "instrument-serif",
-      },
-    },
-  };
+/** Fresh deep copy of the canonical contract fixture (public-page.json). */
+export function samplePage(): PublicPage {
+  return structuredClone(fixture) as unknown as PublicPage;
 }
+
+/** Community ids in the canonical fixture, by role. */
+export const IDS = {
+  discord: "01920000-0000-7000-8000-000000000001",
+  discordStale: "01920000-0000-7000-8000-000000000002",
+  discordDegraded: "01920000-0000-7000-8000-000000000003",
+  kook: "01920000-0000-7000-8000-000000000004",
+  qqWithLink: "01920000-0000-7000-8000-000000000005",
+  qqNoLink: "01920000-0000-7000-8000-000000000006",
+  wechat: "01920000-0000-7000-8000-000000000007",
+  kookUnavailable: "01920000-0000-7000-8000-000000000008",
+} as const;
+
+/** A community from the fixture with optional overrides (live merged shallowly). */
+export function sampleCommunity(
+  id: string,
+  patch: Partial<Omit<CommunityView, "live">> & { live?: Partial<LiveView> } = {},
+): CommunityView {
+  const base = samplePage().communities[id];
+  if (!base) throw new Error(`fixture has no community ${id}`);
+  const { live, ...rest } = patch;
+  return { ...base, ...rest, live: { ...base.live, ...live } };
+}
+
+/** The fixture's "now" (its generatedAt), in ms. */
+export const FIXTURE_NOW = Date.parse(fixture.generatedAt);

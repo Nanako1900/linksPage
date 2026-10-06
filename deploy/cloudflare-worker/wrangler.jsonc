@@ -1,0 +1,47 @@
+// LinksPage topology C edge Worker. Deploy steps: README.zh-CN.md.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "linkspage-edge",
+  "main": "src/index.ts",
+  // Must not be newer than the workerd bundled with @cloudflare/vitest-pool-workers.
+  "compatibility_date": "2026-08-15",
+  "assets": {
+    // Built by `pnpm build` in web/ (or extracted from the release web-dist.tar.gz).
+    "directory": "../../web/dist",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+    // Only public HTML routes run the Worker before Static Assets. /admin is
+    // listed so the stale admin shell in web/dist is never served from the
+    // edge; it is passed through to the origin instead (or set as a None route).
+    "run_worker_first": ["/", "/privacy", "/c/*", "/admin", "/admin/*"]
+  },
+  "vars": {
+    // Empty = the visitor-facing host. Its /api/* must then be a None route.
+    "LP_ORIGIN": "",
+    "LP_RENDER_TIMEOUT_MS": "4000"
+  },
+  // LP_PROXY_AUTH is a secret: `pnpm exec wrangler secret put LP_PROXY_AUTH`.
+  // Routes are account specific; add them here or in the dashboard, e.g.
+  // "routes": [{ "pattern": "links.example.com/*", "zone_name": "example.com" }]
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "env": {
+    // Used only by vitest (vitest.config.ts). Must equal the top-level
+    // "assets" except for "directory"; test/config.test.ts enforces this.
+    "test": {
+      "assets": {
+        "directory": "./test/fixtures/assets",
+        "binding": "ASSETS",
+        "html_handling": "auto-trailing-slash",
+        "not_found_handling": "none",
+        "run_worker_first": ["/", "/privacy", "/c/*", "/admin", "/admin/*"]
+      },
+      "vars": {
+        "LP_ORIGIN": "https://origin.test",
+        "LP_RENDER_TIMEOUT_MS": "4000"
+      }
+    }
+  }
+}

@@ -15,7 +15,7 @@ SQLC      ?= docker run --rm -v "$(CURDIR)":/src -w /src sqlc/sqlc:1.31.1
 
 .PHONY: help
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-14s %s\n",$$1,$$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-14s %s\n",$$1,$$2}'
 
 .PHONY: web-install
 web-install: ## Install frontend dependencies (frozen lockfile)
@@ -77,3 +77,8 @@ dev: dev-db ## Run db, the Go server (air if installed) and the Vite dev server
 	  go run ./cmd/linkspage serve; fi ) & \
 	( cd $(WEB) && $(PNPM) dev ) & \
 	wait
+
+.PHONY: e2e
+e2e: ## Run the Playwright E2E suite against an offline compose stack
+	docker build -t linkspage:e2e .
+	e2e/run.sh

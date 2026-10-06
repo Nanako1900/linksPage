@@ -8,9 +8,108 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Community struct {
+	ID              pgtype.UUID
+	PageID          int16
+	Slug            string
+	Provider        string
+	Platform        string
+	ExternalID      *string
+	Config          []byte
+	Display         []byte
+	IconKey         *string
+	InviteUrl       *string
+	FallbackUrl     *string
+	RefreshInterval pgtype.Interval
+	CreatedAt       pgtype.Timestamptz
+	UpdatedAt       pgtype.Timestamptz
+}
+
+type CommunityQrCode struct {
+	ID          pgtype.UUID
+	CommunityID pgtype.UUID
+	MediaKey    string
+	Note        []byte
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
+type CustomPlatform struct {
+	ID                   string
+	Name                 []byte
+	Icon                 *string
+	IconKey              *string
+	UrlPattern           *string
+	NeedsExternalBrowser bool
+	CreatedAt            pgtype.Timestamptz
+	UpdatedAt            pgtype.Timestamptz
+}
+
+type Link struct {
+	ID        pgtype.UUID
+	PageID    int16
+	Slug      string
+	Kind      string
+	Label     []byte
+	Url       string
+	Icon      *string
+	IconKey   *string
+	RelMe     bool
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
+type MediaProxy struct {
+	Key        string
+	Provider   string
+	Url        string
+	Ext        string
+	Kind       string
+	CreatedAt  pgtype.Timestamptz
+	LastSeenAt pgtype.Timestamptz
+}
+
+type Medium struct {
+	Key         string
+	Kind        string
+	ContentType string
+	Bytes       int32
+	Width       int32
+	Height      int32
+	Variants    []byte
+	CreatedAt   pgtype.Timestamptz
+	CreatedBy   *string
+}
+
 type Page struct {
 	ID   int16
 	Slug string
+}
+
+type PageBlock struct {
+	ID          pgtype.UUID
+	PageID      int16
+	Kind        string
+	CommunityID pgtype.UUID
+	LinkID      pgtype.UUID
+	Data        []byte
+	SortOrder   int32
+	Visible     bool
+	VisibleFrom pgtype.Timestamptz
+	VisibleTo   pgtype.Timestamptz
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
+type ProviderSnapshot struct {
+	CommunityID pgtype.UUID
+	Data        []byte
+	State       string
+	ErrCode     *string
+	FetchedAt   pgtype.Timestamptz
+	LastOkAt    pgtype.Timestamptz
+	NextFetchAt pgtype.Timestamptz
+	FailCount   int32
 }
 
 type SchemaMetum struct {

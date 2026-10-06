@@ -1,0 +1,11 @@
+# Standalone pnpm project for the topology C Worker (not part of web/).
+# Dependency build scripts are denied unless listed as true here.
+allowBuilds:
+  # esbuild (bundled by wrangler) ships its binary in the platform package;
+  # the postinstall is only an optional check.
+  esbuild: false
+  # workerd's postinstall links the platform binary used by wrangler dev and
+  # @cloudflare/vitest-pool-workers.
+  workerd: true
+  # sharp is an optional miniflare dependency for the Images binding (unused).
+  sharp: false

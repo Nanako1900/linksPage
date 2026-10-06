@@ -1,71 +1,24 @@
-import { getPublicBootstrap } from "./api/gen/linkspage";
-import type { Bootstrap } from "./api/gen/model";
-
-export type { Bootstrap };
+/**
+ * Public page data loading. The public entry uses the hand-written DTO
+ * (src/shared/types/public.ts) and plain fetch rather than the generated
+ * orval client, keeping the bundle small (docs/m1/contract.md 2.2).
+ */
+import { isPublicPage, isRecord } from "./types/guards";
+import type { PublicPage } from "./types/public";
 
 /** Element id of the server-rendered bootstrap JSON (see internal/webui). */
 export const BOOTSTRAP_ELEMENT_ID = "lp-data";
 
-const APPEARANCES = new Set(["light", "dark", "auto", "visitor-choice"]);
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
-const PALETTE_KEYS = ["bg", "fg", "muted", "card", "border", "accent", "accentFg"] as const;
-const THEME_STRING_KEYS = ["preset", "radius", "fontSans", "fontDisplay"] as const;
-
-function isNonEmptyString(v: unknown): v is string {
-  return typeof v === "string" && v !== "";
-}
-
-function isStringMap(v: unknown): v is Record<string, string> {
-  return isRecord(v) && Object.values(v).every((x) => typeof x === "string");
-}
-
-function isLocaleList(v: unknown): v is string[] | null {
-  return v === null || (Array.isArray(v) && v.every(isNonEmptyString));
-}
-
-function isPalette(v: unknown): boolean {
-  return isRecord(v) && PALETTE_KEYS.every((k) => typeof v[k] === "string");
-}
-
-function isTheme(v: unknown): boolean {
-  return (
-    isRecord(v) && isPalette(v.light) && isPalette(v.dark) && THEME_STRING_KEYS.every((k) => typeof v[k] === "string")
-  );
-}
-
-function isSite(v: unknown): boolean {
-  return (
-    isRecord(v) &&
-    isNonEmptyString(v.defaultLocale) &&
-    isLocaleList(v.locales) &&
-    typeof v.appearance === "string" &&
-    APPEARANCES.has(v.appearance) &&
-    isStringMap(v.title) &&
-    isStringMap(v.description) &&
-    isTheme(v.theme)
-  );
-}
-
-/** Narrow untrusted JSON to a Bootstrap, checking every field the public entry reads. */
-export function isBootstrap(v: unknown): v is Bootstrap {
-  if (!isRecord(v) || typeof v.version !== "number") return false;
-  const { page } = v;
-  if (!isRecord(page) || typeof page.slug !== "string" || typeof page.id !== "number") return false;
-  return isSite(v.site);
-}
+export const BOOTSTRAP_PATH = "/api/v1/public/bootstrap";
 
 /** Extract `data` from a `{"data": ...}` envelope and validate it. */
-export function parseEnvelope(json: unknown): Bootstrap | null {
+export function parseEnvelope(json: unknown): PublicPage | null {
   if (!isRecord(json)) return null;
-  return isBootstrap(json.data) ? json.data : null;
+  return isPublicPage(json.data) ? json.data : null;
 }
 
-/** Read the bootstrap embedded by the Go server, if present and valid. */
-export function readEmbeddedBootstrap(doc: Document): Bootstrap | null {
+/** Read the bootstrap embedded by the server, if present and valid. */
+export function readEmbeddedPage(doc: Document): PublicPage | null {
   const el = doc.getElementById(BOOTSTRAP_ELEMENT_ID);
   if (!el?.textContent) return null;
   try {
@@ -85,20 +38,32 @@ export class BootstrapError extends Error {
   }
 }
 
-type Fetcher = typeof getPublicBootstrap;
+export type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
 
-/**
- * Embedded data first (production HTML); otherwise fetch it from the API
- * (Vite dev server, which serves its own index.html).
- */
-export async function loadBootstrap(doc: Document, fetcher: Fetcher = getPublicBootstrap): Promise<Bootstrap> {
-  const embedded = readEmbeddedBootstrap(doc);
-  if (embedded) return embedded;
-  const res = await fetcher({ headers: { Accept: "application/json" } });
+/** GET /api/v1/public/bootstrap; throws BootstrapError on failure. */
+export async function fetchPage(fetcher: Fetch = (i, init) => fetch(i, init)): Promise<PublicPage> {
+  const res = await fetcher(BOOTSTRAP_PATH, {
+    headers: { Accept: "application/json" },
+    credentials: "same-origin",
+  });
   if (res.status !== 200) {
     throw new BootstrapError(`bootstrap request failed with status ${res.status}`, res.status);
   }
-  const data = parseEnvelope(res.data);
+  let json: unknown;
+  try {
+    json = await res.json();
+  } catch {
+    throw new BootstrapError("bootstrap response is not JSON");
+  }
+  const data = parseEnvelope(json);
   if (!data) throw new BootstrapError("bootstrap response has an unexpected shape");
   return data;
+}
+
+/**
+ * Embedded data first (production HTML); otherwise fetch it from the API
+ * (Vite dev server, or pages the server rendered without data).
+ */
+export async function loadPage(doc: Document, fetcher?: Fetch): Promise<PublicPage> {
+  return readEmbeddedPage(doc) ?? fetchPage(fetcher);
 }

@@ -5,8 +5,8 @@
  * LinksPage public and admin API. Errors use RFC 9457 problem+json with `code` and `requestId`.
  * OpenAPI spec version: dev
  */
-import type { Bootstrap } from './bootstrap';
+import type { PublicPage } from './publicPage';
 
 export interface BootstrapOutputBody {
-  data: Bootstrap;
+  data: PublicPage;
 }

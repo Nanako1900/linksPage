@@ -45,7 +45,8 @@ func hasNestedKey(m map[string]any, key string) bool {
 	return isMap && hasNestedKey(sub, rest)
 }
 
-// dropShadowedFiles clears secret_key_file / db.password_file when the
+// dropShadowedFiles clears secret_key_file / db.password_file /
+// edge.proxy_auth_file when the
 // plain value was set by a higher-precedence layer (e.g. YAML
 // db.password_file plus LP_DB__PASSWORD): the higher layer wins and the
 // lower *_file is ignored with a warning. Within the same layer the *_file
@@ -65,6 +66,9 @@ func dropShadowedFiles(in *Config, src layerSources) (*Config, []string) {
 	}
 	if out.DB.PasswordFile != "" && shadowed("db.password") {
 		out.DB.PasswordFile = ""
+	}
+	if out.Edge.ProxyAuthFile != "" && shadowed("edge.proxy_auth") {
+		out.Edge.ProxyAuthFile = ""
 	}
 	return &out, warns
 }
@@ -91,6 +95,15 @@ func resolveFiles(in *Config, readFile func(string) ([]byte, error)) (*Config, [
 			errs = append(errs, fmt.Errorf("db.password_file: %w", err))
 		} else {
 			out.DB.Password = Secret(v)
+		}
+	}
+
+	if out.Edge.ProxyAuthFile != "" {
+		v, err := readSecretFile(readFile, out.Edge.ProxyAuthFile)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("edge.proxy_auth_file: %w", err))
+		} else {
+			out.Edge.ProxyAuth = Secret(v)
 		}
 	}
 

@@ -21,24 +21,29 @@ const (
 var slugRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,63}$`)
 
 // Public returns the handler for a public page kind. For PageCommunity
-// the slug is read from r.PathValue("slug").
+// the slug is read from r.PathValue("slug"); unknown or invalid slugs get
+// the 404 page.
 func (rd *Renderer) Public(kind PageKind) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if kind == PageCommunity && !slugRe.MatchString(r.PathValue("slug")) {
-			rd.NotFound().ServeHTTP(w, r)
-			return
+		slug := ""
+		if kind == PageCommunity {
+			slug = r.PathValue("slug")
 		}
-		p, err := rd.renderPublic(kind, r.URL.Path, r.URL.Query().Get("lang"))
-		rd.write(w, r, p, err, http.StatusOK, true)
+		rd.servePublic(w, r, kind, slug)
 	})
 }
 
 // NotFound returns the 404 HTML handler.
 func (rd *Renderer) NotFound() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		p, err := rd.renderPublic(PageNotFound, "/", r.URL.Query().Get("lang"))
-		rd.write(w, r, p, err, http.StatusNotFound, true)
+		rd.servePublic(w, r, PageNotFound, "")
 	})
+}
+
+func (rd *Renderer) servePublic(w http.ResponseWriter, r *http.Request, kind PageKind, slug string) {
+	pc := rd.resolve(kind, slug, r.URL.Query().Get("lang"), r.Header.Get("Accept-Language"))
+	p, err := rd.renderPublic(pc)
+	rd.write(w, r, p, err, true)
 }
 
 // Admin returns the admin shell handler (/admin and /admin/*).
@@ -46,11 +51,11 @@ func (rd *Renderer) Admin() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p, err := rd.renderAdmin()
 		w.Header().Set("X-Robots-Tag", "noindex, nofollow")
-		rd.write(w, r, p, err, http.StatusOK, false)
+		rd.write(w, r, p, err, false)
 	})
 }
 
-func (rd *Renderer) write(w http.ResponseWriter, r *http.Request, p page, err error, status int, public bool) {
+func (rd *Renderer) write(w http.ResponseWriter, r *http.Request, p page, err error, public bool) {
 	if err != nil {
 		rd.opts.Logger.Error("render html", slog.Any("error", err))
 		w.Header().Set("Cache-Control", CacheNoStore)
@@ -63,10 +68,11 @@ func (rd *Renderer) write(w http.ResponseWriter, r *http.Request, p page, err er
 	h.Add("Vary", "Accept-Encoding")
 	h.Set("Content-Security-Policy", p.csp)
 	if public {
+		h.Add("Vary", "Accept-Language")
 		h.Set("Content-Security-Policy-Report-Only", TrustedTypesReportOnly)
 	}
 	h.Set("Cache-Control", CacheHTML)
-	if status == http.StatusOK {
+	if p.status == http.StatusOK {
 		h.Set("ETag", p.etag)
 		if etagMatches(r.Header.Get("If-None-Match"), p.etag) {
 			w.WriteHeader(http.StatusNotModified)
@@ -74,7 +80,7 @@ func (rd *Renderer) write(w http.ResponseWriter, r *http.Request, p page, err er
 		}
 	}
 	h.Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(status)
+	w.WriteHeader(p.status)
 	if r.Method == http.MethodHead {
 		return
 	}

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -91,17 +92,23 @@ func TestIntegrationMigrationsAndQueries(t *testing.T) {
 		}
 	}()
 
+	wantMigrations := migrationCount(t)
 	pending, err := m.Pending(ctx)
-	if err != nil || len(pending) != 1 || pending[0].Version != 1 {
+	if err != nil || len(pending) != wantMigrations || pending[0].Version != 1 {
 		t.Fatalf("pending = %+v err=%v", pending, err)
 	}
 
 	// Two concurrent runs must serialize on the session lock.
-	runConcurrentUp(ctx, t, pool, logger)
+	runConcurrentUp(ctx, t, pool, logger, wantMigrations)
 
 	status, err := m.Status(ctx)
-	if err != nil || len(status) != 1 || !status[0].Applied {
+	if err != nil || len(status) != wantMigrations {
 		t.Fatalf("status = %+v err=%v", status, err)
+	}
+	for _, st := range status {
+		if !st.Applied {
+			t.Fatalf("migration %d not applied: %+v", st.Version, status)
+		}
 	}
 	applied, err := m.Up(ctx)
 	if err != nil || len(applied) != 0 {
@@ -110,9 +117,26 @@ func TestIntegrationMigrationsAndQueries(t *testing.T) {
 
 	assertQueries(ctx, t, dbq.New(pool))
 	assertUUIDv7(ctx, t, pool)
+	assertM1Schema(ctx, t, pool)
 }
 
-func runConcurrentUp(ctx context.Context, t *testing.T, pool *pgxpool.Pool, logger *slog.Logger) {
+// migrationCount returns the number of embedded migration files.
+func migrationCount(t *testing.T) int {
+	t.Helper()
+	entries, err := fs.ReadDir(MigrationsFS(), ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, e := range entries {
+		if strings.HasSuffix(e.Name(), ".sql") {
+			n++
+		}
+	}
+	return n
+}
+
+func runConcurrentUp(ctx context.Context, t *testing.T, pool *pgxpool.Pool, logger *slog.Logger, want int) {
 	t.Helper()
 	var wg sync.WaitGroup
 	errs := make([]error, 2)
@@ -133,8 +157,8 @@ func runConcurrentUp(ctx context.Context, t *testing.T, pool *pgxpool.Pool, logg
 	if err := errors.Join(errs...); err != nil {
 		t.Fatalf("concurrent Up: %v", err)
 	}
-	if total[0]+total[1] != 1 {
-		t.Fatalf("migration applied %d times", total[0]+total[1])
+	if total[0]+total[1] != want {
+		t.Fatalf("applied %d migrations in total, want %d", total[0]+total[1], want)
 	}
 }
 

@@ -36,6 +36,7 @@ func (t LocalizedText) Get(locale, fallback string) string {
 
 // Settings are the DB-editable site settings (site_settings.data). The
 // stored JSON only needs to contain values that differ from Default().
+// Settings are never sent to browsers as-is: the public view is PublicSite.
 type Settings struct {
 	DefaultLocale string        `json:"defaultLocale"`
 	Locales       []string      `json:"locales"`
@@ -43,17 +44,47 @@ type Settings struct {
 	Description   LocalizedText `json:"description"`
 	Appearance    string        `json:"appearance"`
 	Theme         Theme         `json:"theme"`
+
+	// M1 additions (doc 9). See settings_m1.go for validation.
+
+	// DisplayName is the name shown in the identity column (falls back to
+	// Title when empty).
+	DisplayName LocalizedText `json:"displayName"`
+	// Bio is a short introduction in the Markdown subset of internal/content.
+	Bio LocalizedText `json:"bio"`
+	// AvatarKey is a media key ("<32 hex>.webp|png|jpg") or "".
+	AvatarKey string `json:"avatarKey"`
+	// Footer is footer text in the Markdown subset.
+	Footer LocalizedText `json:"footer"`
+	// ShowPoweredBy shows "Powered by LinksPage" in the footer.
+	ShowPoweredBy bool `json:"showPoweredBy"`
+	// OG overrides link-preview metadata.
+	OG OGSettings `json:"og"`
+	// SearchIndexing is SearchIndex or SearchNoIndex (meta robots and robots.txt).
+	SearchIndexing string `json:"searchIndexing"`
+	// NotFound is the lede of the 404 page (plain text).
+	NotFound LocalizedText `json:"notFound"`
+	// Copy overrides built-in guide texts per locale (see CopyKeys).
+	Copy CopyOverrides `json:"copy"`
 }
 
 // Default returns fresh built-in settings ("Signal Paper").
 func Default() Settings {
 	return Settings{
-		DefaultLocale: "zh-CN",
-		Locales:       []string{"zh-CN", "en"},
-		Title:         LocalizedText{"zh-CN": "我的社区", "en": "My Communities"},
-		Description:   LocalizedText{"zh-CN": "加入我们的社区。", "en": "Join our communities."},
-		Appearance:    AppearanceAuto,
-		Theme:         DefaultTheme(),
+		DefaultLocale:  "zh-CN",
+		Locales:        []string{"zh-CN", "en"},
+		Title:          LocalizedText{"zh-CN": "我的社区", "en": "My Communities"},
+		Description:    LocalizedText{"zh-CN": "加入我们的社区。", "en": "Join our communities."},
+		Appearance:     AppearanceAuto,
+		Theme:          DefaultTheme(),
+		DisplayName:    LocalizedText{},
+		Bio:            LocalizedText{},
+		Footer:         LocalizedText{},
+		ShowPoweredBy:  true,
+		OG:             OGSettings{Title: LocalizedText{}, Description: LocalizedText{}},
+		SearchIndexing: SearchIndex,
+		NotFound:       LocalizedText{},
+		Copy:           CopyOverrides{},
 	}
 }
 
@@ -96,6 +127,7 @@ func (s Settings) Validate() error {
 	if err := s.Theme.Validate(); err != nil {
 		errs = append(errs, err)
 	}
+	errs = append(errs, s.validateM1()...)
 	return errors.Join(errs...)
 }
 
@@ -105,6 +137,12 @@ func (s Settings) Clone() Settings {
 	out.Locales = slices.Clone(s.Locales)
 	out.Title = maps.Clone(s.Title)
 	out.Description = maps.Clone(s.Description)
+	out.DisplayName = maps.Clone(s.DisplayName)
+	out.Bio = maps.Clone(s.Bio)
+	out.Footer = maps.Clone(s.Footer)
+	out.OG = s.OG.clone()
+	out.NotFound = maps.Clone(s.NotFound)
+	out.Copy = s.Copy.Clone()
 	return out
 }
 

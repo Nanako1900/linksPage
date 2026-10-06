@@ -167,7 +167,7 @@ func TestPublicPageRendering(t *testing.T) {
 		`<meta name="theme-color" content="#f9f7f1" media="(prefers-color-scheme: light)">`,
 		`<link rel="stylesheet" href="/assets/index-CCC.css">`, `<link rel="stylesheet" href="/assets/shared-GGG.css">`,
 		`<link rel="modulepreload" href="/assets/shared-BBB.js">`, `<link rel="modulepreload" href="/assets/dep-EEE.js">`,
-		`<script type="module" src="/assets/index-AAA.js"></script>`, `<div id="root"><main class="lp-shell">`,
+		`<script type="module" src="/assets/index-AAA.js"></script>`, `<div id="root"><div class="lp-fb"><main class="lp-shell">`,
 		`<p class="lp-note">正在加载…</p>`,
 	} {
 		if !strings.Contains(body, want) {
@@ -218,10 +218,10 @@ func assertBootstrap(t *testing.T, body string, snap *site.Snapshot) {
 		t.Fatal("lp-data script missing")
 	}
 	var env struct {
-		Data site.Bootstrap `json:"data"`
+		Data site.PublicPage `json:"data"`
 	}
-	if err := json.Unmarshal([]byte(m[1]), &env); err != nil {
-		t.Fatalf("lp-data is not JSON: %v\n%s", err, m[1])
+	if err := site.DecodeStrict([]byte(m[1]), &env); err != nil {
+		t.Fatalf("lp-data is not a PublicPage: %v\n%s", err, m[1])
 	}
 	if env.Data.Version != snap.Version || env.Data.Page.Slug != "default" || env.Data.Site.Theme.Light.Bg != "#f9f7f1" {
 		t.Errorf("bootstrap = %+v", env.Data)
@@ -237,7 +237,7 @@ func TestPublicPageEscaping(t *testing.T) {
 	if strings.Contains(body, "<script>alert(1)") || strings.Contains(body, "<img src=x") {
 		t.Fatalf("unescaped content in body:\n%s", body)
 	}
-	assertCSPMatchesInline(t, body, PublicCSP(env.rd.bootHash, env.rd.criticalHash, env.snap.ThemeHash))
+	assertCSPMatchesInline(t, body, PublicCSP(env.rd.bootHash, env.rd.criticalHash, env.snap.ThemeHash, false))
 	m := lpDataRe.FindStringSubmatch(body)
 	var v map[string]any
 	if m == nil || json.Unmarshal([]byte(m[1]), &v) != nil {
@@ -300,11 +300,7 @@ func TestOtherPublicPages(t *testing.T) {
 		!strings.Contains(priv.Body.String(), `<html lang="en"`) {
 		t.Errorf("privacy page wrong: %d", priv.Code)
 	}
-	comm := do(mux, http.MethodGet, "/c/my-server", nil)
-	if comm.Code != 200 || !strings.Contains(comm.Body.String(), `href="https://links.example.com/c/my-server"`) {
-		t.Errorf("community page wrong: %d", comm.Code)
-	}
-	for _, target := range []string{"/c/Bad_Slug", "/nope"} {
+	for _, target := range []string{"/c/Bad_Slug", "/nope", "/c/my-server"} {
 		w := do(mux, http.MethodGet, target, map[string]string{"If-None-Match": "*"})
 		body := w.Body.String()
 		if w.Code != http.StatusNotFound || w.Header().Get("ETag") != "" {
@@ -403,7 +399,7 @@ func TestContentType(t *testing.T) {
 func TestWriteRenderError(t *testing.T) {
 	env := newEnv(t, fakeDist(), site.Default())
 	w := httptest.NewRecorder()
-	env.rd.write(w, httptest.NewRequest(http.MethodGet, "/", nil), page{}, errors.New("boom"), 200, true)
+	env.rd.write(w, httptest.NewRequest(http.MethodGet, "/", nil), page{status: 200}, errors.New("boom"), true)
 	if w.Code != 500 || w.Header().Get("Cache-Control") != CacheNoStore || !strings.Contains(env.logs.String(), "boom") {
 		t.Errorf("render error handling wrong: %d", w.Code)
 	}

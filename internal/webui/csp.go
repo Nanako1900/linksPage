@@ -15,8 +15,18 @@ const AdminCSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsaf
 	"img-src 'self' data: blob:; frame-src 'self'; frame-ancestors 'none'; base-uri 'self'; " +
 	"form-action 'self'; object-src 'none'"
 
+// DiscordFrameOrigin is the only frame source public pages may load (the
+// click-to-load Discord widget iframe).
+const DiscordFrameOrigin = "https://discord.com"
+
 // PublicCSP builds the public page policy from inline-content hashes.
-func PublicCSP(bootHash, criticalHash, themeHash string) string {
+// discordFrame allows frame-src https://discord.com (some card enables the
+// Discord iframe); otherwise frames are disallowed entirely.
+func PublicCSP(bootHash, criticalHash, themeHash string, discordFrame bool) string {
+	frame := "frame-src 'none'"
+	if discordFrame {
+		frame = "frame-src " + DiscordFrameOrigin
+	}
 	return strings.Join([]string{
 		"default-src 'self'",
 		"script-src 'self' " + bootHash,
@@ -24,6 +34,7 @@ func PublicCSP(bootHash, criticalHash, themeHash string) string {
 		"img-src 'self' data: blob:",
 		"font-src 'self'",
 		"connect-src 'self'",
+		frame,
 		"frame-ancestors 'none'",
 		"base-uri 'self'",
 		"form-action 'self'",
